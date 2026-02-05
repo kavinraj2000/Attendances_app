@@ -1,105 +1,122 @@
-part of 'dashboard_bloc.dart';
+// dashboard_state.dart
 
-enum CheckInStatus { notCheckedIn, checkedIn, checkedOut }
+part of 'dashboard_bloc.dart';
 
 enum DashboardLoadingStatus { initial, loading, success, failure }
 
+enum CheckInStatus { notCheckedIn, checkedIn }
+
 class DashboardState extends Equatable {
-  final CheckInStatus checkInStatus;
   final DashboardLoadingStatus loadingStatus;
+  final CheckInStatus checkInStatus;
   final DateTime? checkInTime;
   final DateTime? checkOutTime;
-  final Duration elapsedTime;
-  final CheckInModel? checkInModel;
-  final CheckInModel? checkOutModel;
-  final int? currentAttendanceId;
-  final int currentEmployeeId;
+  final List<AttendanceModel> attendanceList;
   final String? errorMessage;
-  final DateTime selectedDay;
+  final int todaySessionsCount;
+  
+  // Calendar states
   final DateTime focusedDay;
+  final DateTime? selectedDay;
   final CalendarFormat calendarFormat;
-  final Map<DateTime, int> attendanceData;
 
   const DashboardState({
-    required this.checkInStatus,
     required this.loadingStatus,
+    required this.checkInStatus,
     this.checkInTime,
     this.checkOutTime,
-    required this.elapsedTime,
-    this.checkInModel,
-    this.checkOutModel,
-    this.currentAttendanceId,
-    required this.currentEmployeeId,
+    required this.attendanceList,
     this.errorMessage,
-    required this.selectedDay,
+    required this.todaySessionsCount,
     required this.focusedDay,
+    this.selectedDay,
     required this.calendarFormat,
-    required this.attendanceData,
   });
 
   factory DashboardState.initial() {
-    final now = DateTime.now();
     return DashboardState(
-      checkInStatus: CheckInStatus.notCheckedIn,
       loadingStatus: DashboardLoadingStatus.initial,
-      elapsedTime: Duration.zero,
-      selectedDay: now,
-      focusedDay: now,
+      checkInStatus: CheckInStatus.notCheckedIn,
+      checkInTime: null,
+      checkOutTime: null,
+      attendanceList: const [],
+      errorMessage: null,
+      todaySessionsCount: 0,
+      focusedDay: DateTime.now(),
+      selectedDay: DateTime.now(),
       calendarFormat: CalendarFormat.month,
-      attendanceData: {},
-      currentEmployeeId: 0,
     );
   }
 
+  /// Computed property: Can user check in?
+  bool get canCheckIn => 
+      checkInStatus == CheckInStatus.notCheckedIn &&
+      loadingStatus != DashboardLoadingStatus.loading;
+
+  /// Computed property: Can user check out?
+  bool get canCheckOut => 
+      checkInStatus == CheckInStatus.checkedIn &&
+      checkOutTime == null &&
+      loadingStatus != DashboardLoadingStatus.loading;
+
+  /// Computed property: Elapsed working time
+  Duration get elapsedTime {
+    if (checkInTime == null) return Duration.zero;
+    
+    final endTime = checkOutTime ?? DateTime.now();
+    final elapsed = endTime.difference(checkInTime!);
+    
+    return elapsed.isNegative ? Duration.zero : elapsed;
+  }
+
   DashboardState copyWith({
-    CheckInStatus? checkInStatus,
     DashboardLoadingStatus? loadingStatus,
+    CheckInStatus? checkInStatus,
     DateTime? checkInTime,
     DateTime? checkOutTime,
-    Duration? elapsedTime,
-    CheckInModel? checkInModel,
-    CheckInModel? checkOutModel,
-    int? currentAttendanceId,
-    int? currentEmployeeId,
+    List<AttendanceModel>? attendanceList,
     String? errorMessage,
-    DateTime? selectedDay,
+    int? todaySessionsCount,
     DateTime? focusedDay,
+    DateTime? selectedDay,
     CalendarFormat? calendarFormat,
-    Map<DateTime, int>? attendanceData,
   }) {
     return DashboardState(
-      checkInStatus: checkInStatus ?? this.checkInStatus,
       loadingStatus: loadingStatus ?? this.loadingStatus,
+      checkInStatus: checkInStatus ?? this.checkInStatus,
       checkInTime: checkInTime ?? this.checkInTime,
       checkOutTime: checkOutTime ?? this.checkOutTime,
-      elapsedTime: elapsedTime ?? this.elapsedTime,
-      checkInModel: checkInModel ?? this.checkInModel,
-      checkOutModel: checkOutModel ?? this.checkOutModel,
-      currentAttendanceId: currentAttendanceId ?? this.currentAttendanceId,
-      currentEmployeeId: currentEmployeeId ?? this.currentEmployeeId,
+      attendanceList: attendanceList ?? this.attendanceList,
       errorMessage: errorMessage,
-      selectedDay: selectedDay ?? this.selectedDay,
+      todaySessionsCount: todaySessionsCount ?? this.todaySessionsCount,
       focusedDay: focusedDay ?? this.focusedDay,
+      selectedDay: selectedDay ?? this.selectedDay,
       calendarFormat: calendarFormat ?? this.calendarFormat,
-      attendanceData: attendanceData ?? this.attendanceData,
     );
   }
 
   @override
   List<Object?> get props => [
-    checkInStatus,
-    loadingStatus,
-    checkInTime,
-    checkOutTime,
-    elapsedTime,
-    checkInModel,
-    checkOutModel,
-    currentAttendanceId,
-    currentEmployeeId,
-    errorMessage,
-    selectedDay,
-    focusedDay,
-    calendarFormat,
-    attendanceData,
-  ];
+        loadingStatus,
+        checkInStatus,
+        checkInTime,
+        checkOutTime,
+        attendanceList,
+        errorMessage,
+        todaySessionsCount,
+        focusedDay,
+        selectedDay,
+        calendarFormat,
+      ];
+
+  @override
+  String toString() {
+    return 'DashboardState('
+        'status: $loadingStatus, '
+        'checkIn: $checkInStatus, '
+        'checkInTime: $checkInTime, '
+        'checkOutTime: $checkOutTime, '
+        'sessions: $todaySessionsCount'
+        ')';
+  }
 }

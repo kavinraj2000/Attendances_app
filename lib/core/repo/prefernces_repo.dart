@@ -1,10 +1,11 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hrm/core/config/app_config.dart'; 
+import 'package:hrm/core/config/app_config.dart';
 
 class PreferencesRepository {
   static const String _tokenKey = AppConfig.tokenKey;
   static const String _userIdKey = AppConfig.userIdKey;
   static const String _isLoggedInKey = AppConfig.isLoggedInKey;
+  static const _checkInStartKey = 'check_in_start_time';
 
   Future<void> saveToken(String token) async {
     try {
@@ -50,7 +51,8 @@ class PreferencesRepository {
       return null;
     }
   }
-    Future<String?> getUsername() async {
+
+  Future<String?> getUsername() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString('created_by');
@@ -58,7 +60,6 @@ class PreferencesRepository {
       return null;
     }
   }
-
 
   Future<bool> isLoggedIn() async {
     try {
@@ -87,5 +88,21 @@ class PreferencesRepository {
     } catch (e) {
       throw Exception('Failed to clear data: ${e.toString()}');
     }
+  }
+
+  Future<void> saveCheckInStartTime(DateTime time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_checkInStartKey, time.toIso8601String());
+  }
+
+  Future<DateTime?> getCheckInStartTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_checkInStartKey);
+    return value != null ? DateTime.parse(value) : null;
+  }
+
+  Future<void> clearCheckInStartTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_checkInStartKey);
   }
 }

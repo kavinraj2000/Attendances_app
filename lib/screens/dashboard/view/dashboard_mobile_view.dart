@@ -1,140 +1,232 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/model/check_in_model.dart';
-import 'package:hrm/core/widgets/attances_popup_widget.dart';
+import 'package:hrm/core/helper/attendances_helper.dart';
+import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/screens/dashboard/bloc/dashboard_bloc.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class DashboardMobileView extends StatefulWidget {
+class DashboardMobileView extends StatelessWidget {
   const DashboardMobileView({super.key});
-
-  @override
-  State<DashboardMobileView> createState() => _DashboardMobileViewState();
-}
-
-class _DashboardMobileViewState extends State<DashboardMobileView> {
-  CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
-
-  /// status codes
-  /// 1 = present, 2 = absent, 3 = halfDay, 4 = leave, 5 = holiday
-  final Map<DateTime, int> _attendanceData = {
-    DateTime(2026, 1, 20): 1,
-    DateTime(2026, 1, 21): 1,
-    DateTime(2026, 1, 22): 3,
-    DateTime(2026, 1, 23): 4,
-    DateTime(2026, 1, 24): 5,
-    DateTime(2026, 1, 25): 2,
-  };
-
-  DateTime _midnight(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  /// 🔥 BUILD SHIFT TIMELINE (9 HOURS)
-  List<ScheduleItem> _buildShiftSchedule(DateTime checkInTime) {
-    final checkOutTime = checkInTime.add(const Duration(hours: 9));
-    final now = DateTime.now();
-
-    return [
-      ScheduleItem(
-        title: 'Check In',
-        time: checkInTime,
-        isActive: now.isAfter(checkInTime) && now.isBefore(checkOutTime),
-        categoryIcon: Icons.login,
-      ),
-      ScheduleItem(
-        title: 'Check Out',
-        time: checkOutTime,
-        isActive: now.isAfter(checkOutTime),
-        categoryIcon: Icons.logout,
-      ),
-    ];
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Constants.color.lightColors['primary'],
       body: BlocConsumer<DashboardBloc, DashboardState>(
-        listener: (context, state) {
-          if (state.loadingStatus == DashboardLoadingStatus.failure &&
-              state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                backgroundColor: Colors.red,
-              ),
+        listener: _handleStateChanges,
+        builder: (context, state) {
+          if (state.loadingStatus == DashboardLoadingStatus.loading &&
+              state.attendanceList.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
           }
 
-          if (state.loadingStatus == DashboardLoadingStatus.success) {
-            if (state.checkInStatus == CheckInStatus.checkedIn) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Checked in successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-
-            if (state.checkInStatus == CheckInStatus.checkedOut) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Checked out successfully'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-            }
-          }
-        },
-        builder: (context, state) {
-          if (state.loadingStatus == DashboardLoadingStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return Column(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                  ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        _buildCheckInCard(context, state),
-                        const SizedBox(height: 24),
-                        _buildAttendanceCalendar(context, state),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
+          return _buildBody(context, state);
         },
       ),
     );
   }
 
-  // ═══════════ CHECK-IN CARD ═══════════
+  // ───────────────── STATE LISTENER ─────────────────
 
-  Widget _buildCheckInCard(BuildContext context, DashboardState state) {
-    final elapsed = state.elapsedTime;
-    final hours = elapsed.inHours.toString().padLeft(2, '0');
-    final minutes = (elapsed.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
+  void _handleStateChanges(BuildContext context, DashboardState state) {
+    // Handle errors
+    if (state.loadingStatus == DashboardLoadingStatus.failure &&
+        state.errorMessage != null) {
+      _showErrorSnackbar(context, state.errorMessage!);
+      return;
+    }
 
-    final isCheckedIn = state.checkInStatus == CheckInStatus.checkedIn;
+    // Handle successful operations
+    if (state.loadingStatus == DashboardLoadingStatus.success) {
+      _handleSuccessStates(context, state);
+    }
+  }
+
+  void _handleSuccessStates(BuildContext context, DashboardState state) {
+    // Check-in success
+    if (state.checkInStatus == CheckInStatus.checkedIn &&
+        state.checkOutTime == null &&
+        state.checkInTime != null) {
+      _showSuccessSnackbar(
+        context,
+        'Checked in successfully at ${_formatTime(state.checkInTime!)}',
+      );
+    }
+
+    // Check-out success
+    if (state.checkOutTime != null &&
+        state.checkInStatus == CheckInStatus.notCheckedIn) {
+      _showInfoSnackbar(
+        context,
+        'Checked out successfully at ${_formatTime(state.checkOutTime!)}',
+      );
+    }
+  }
+
+  // ───────────────── BODY ─────────────────
+
+  Widget _buildBody(BuildContext context, DashboardState state) {
+    return Column(
+      children: [
+        _buildHeader(context, state),
+        Expanded(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(30),
+              ),
+            ),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                context.read<DashboardBloc>().add(RefreshDashboard());
+                await Future.delayed(const Duration(seconds: 1));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _CheckInCard(state: state),
+                    const SizedBox(height: 24),
+                    _AttendanceCalendarCard(
+                      attendanceMap: AttendanceHelper.buildAttendanceMap(
+                        state.attendanceList,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ───────────────── HEADER ─────────────────
+
+  Widget _buildHeader(BuildContext context, DashboardState state) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Attendance',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _getGreeting(),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white.withOpacity(0.9),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────── HELPERS ─────────────────
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning!';
+    if (hour < 17) return 'Good Afternoon!';
+    return 'Good Evening!';
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  // ───────────────── SNACKBARS ─────────────────
+
+  void _showSuccessSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showInfoSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {},
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHECK-IN CARD WIDGET
+// ═══════════════════════════════════════════════════════════
+
+class _CheckInCard extends StatelessWidget {
+  final DashboardState state;
+
+  const _CheckInCard({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = state.loadingStatus == DashboardLoadingStatus.loading;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -145,168 +237,370 @@ class _DashboardMobileViewState extends State<DashboardMobileView> {
       ),
       child: Column(
         children: [
-          const Text('Working Time',
-              style: TextStyle(fontSize: 14, color: Colors.black54)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _timeBox(hours),
-              _colon(),
-              _timeBox(minutes),
-              _colon(),
-              _timeBox(seconds),
-            ],
-          ),
-          const SizedBox(height: 20),
+          // Time Cards Row
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: isCheckedIn
-                      ? null
-                      : () => context.read<DashboardBloc>().add(const CheckIn()),
-                  icon: const Icon(Icons.login),
-                  label: const Text('Check In'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
+                child: _TimeCard(
+                  icon: Icons.login,
+                  label: 'Check In',
+                  time: _formatTime(state.checkInTime),
+                  color: Colors.green,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: isCheckedIn
-                      ? () =>
-                          context.read<DashboardBloc>().add(const CheckOut())
-                      : null,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Check Out'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
+                child: _TimeCard(
+                  icon: Icons.logout,
+                  label: 'Check Out',
+                  time: _formatTime(state.checkOutTime),
+                  color: Colors.red,
                 ),
               ),
             ],
           ),
+
+          // Working Time Display
+          if (state.elapsedTime.inSeconds > 0) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Working Time: ${_formatDuration(state.elapsedTime)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          // Action Buttons
+          if (state.checkInStatus == CheckInStatus.notCheckedIn)
+            _CheckInButton(
+              isLoading: isLoading,
+              canCheckIn: state.canCheckIn,
+              onPressed: () {
+                context.read<DashboardBloc>().add(CheckIn());
+              },
+            )
+          else
+            _CheckOutButton(
+              isLoading: isLoading,
+              canCheckOut: state.canCheckOut,
+              onPressed: () {
+                context.read<DashboardBloc>().add(CheckOut());
+              },
+            ),
         ],
       ),
     );
   }
 
-  Widget _timeBox(String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        value,
-        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-      ),
-    );
+  String _formatTime(DateTime? time) {
+    if (time == null) return '--:--';
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
   }
 
-  Widget _colon() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: Text(':',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-    );
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    return '${hours}h ${minutes}m';
   }
+}
 
-  // ═══════════ ATTENDANCE CALENDAR ═══════════
+// ═══════════════════════════════════════════════════════════
+// TIME CARD WIDGET
+// ═══════════════════════════════════════════════════════════
 
-  Widget _buildAttendanceCalendar(BuildContext context, DashboardState state) {
+class _TimeCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String time;
+  final Color color;
+
+  const _TimeCard({
+    required this.icon,
+    required this.label,
+    required this.time,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1.5,
+        ),
+        color: color.withOpacity(0.05),
       ),
       child: Column(
         children: [
-          const Text(
-            'Attendance Calendar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          const SizedBox(height: 16),
-          TableCalendar(
-            firstDay: DateTime(2020),
-            lastDay: DateTime(2030),
-            focusedDay: _focusedDay,
-            calendarFormat: _calendarFormat,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-
-              /// ✅ USE REAL CHECK-IN TIME
-              final checkInTime =
-                  state.checkInTime ?? DateTime.now();
-
-              final items = _buildShiftSchedule(checkInTime);
-
-              showSchedulePopup(context, items);
-            },
-            onFormatChanged: (format) =>
-                setState(() => _calendarFormat = format),
-            calendarBuilders: CalendarBuilders(
-              defaultBuilder: (context, day, _) => _calendarCell(day),
-              selectedBuilder: (context, day, _) =>
-                  _calendarCell(day, selected: true),
-              todayBuilder: (context, day, _) =>
-                  _calendarCell(day, today: true),
+          const SizedBox(height: 4),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  // ═══════════ CALENDAR CELL ═══════════
+// ═══════════════════════════════════════════════════════════
+// CHECK-IN BUTTON
+// ═══════════════════════════════════════════════════════════
 
-  Widget _calendarCell(DateTime day,
-      {bool selected = false, bool today = false}) {
-    final status = _attendanceData[_midnight(day)];
-    Color border = Colors.transparent;
-    Color bg = Colors.grey[100]!;
+class _CheckInButton extends StatelessWidget {
+  final bool isLoading;
+  final bool canCheckIn;
+  final VoidCallback onPressed;
 
-    if (selected) {
-      bg = Colors.blue;
-    } else if (today) {
-      bg = Colors.blue.withOpacity(0.3);
-    } else if (status == 1) {
-      border = Colors.green;
-    } else if (status == 2) {
-      border = Colors.red;
-    } else if (status == 3) {
-      border = Colors.amber;
-    } else if (status == 4) {
-      border = Colors.purple;
-    } else if (status == 5) {
-      border = Colors.blue;
-    }
+  const _CheckInButton({
+    required this.isLoading,
+    required this.canCheckIn,
+    required this.onPressed,
+  });
 
-    return Container(
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: bg,
-        border: Border.all(color: border, width: status != null ? 2 : 0),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: Text(
-          '${day.day}',
-          style:
-              TextStyle(color: selected ? Colors.white : Colors.black),
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: (canCheckIn && !isLoading) ? onPressed : null,
+        icon: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.login, size: 24),
+        label: Text(
+          isLoading ? 'Processing...' : 'Check In',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey[300],
+          disabledForegroundColor: Colors.grey[500],
+          elevation: isLoading ? 0 : 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHECK-OUT BUTTON
+// ═══════════════════════════════════════════════════════════
+
+class _CheckOutButton extends StatelessWidget {
+  final bool isLoading;
+  final bool canCheckOut;
+  final VoidCallback onPressed;
+
+  const _CheckOutButton({
+    required this.isLoading,
+    required this.canCheckOut,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: (canCheckOut && !isLoading) ? onPressed : null,
+        icon: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.logout, size: 24),
+        label: Text(
+          isLoading ? 'Processing...' : 'Check Out',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey[300],
+          disabledForegroundColor: Colors.grey[500],
+          elevation: isLoading ? 0 : 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ATTENDANCE CALENDAR CARD
+// ═══════════════════════════════════════════════════════════
+
+class _AttendanceCalendarCard extends StatelessWidget {
+  final Map<DateTime, AttendanceModel> attendanceMap;
+
+  const _AttendanceCalendarCard({required this.attendanceMap});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<DashboardBloc, DashboardState>(
+      builder: (context, state) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Attendance Calendar',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TableCalendar(
+                firstDay: DateTime(2020),
+                lastDay: DateTime(2030),
+                focusedDay: state.focusedDay,
+                calendarFormat: state.calendarFormat,
+                selectedDayPredicate: (day) => isSameDay(state.selectedDay, day),
+                onDaySelected: (selectedDay, focusedDay) {
+                  context.read<DashboardBloc>().add(
+                        SelectDay(selectedDay, focusedDay),
+                      );
+
+                  final normalizedDay = AttendanceHelper.midnight(selectedDay);
+                  final attendance = attendanceMap[normalizedDay];
+
+                  if (attendance != null) {
+                    _showAttendanceDetails(context, attendance);
+                  }
+                },
+                onFormatChanged: (format) {
+                  context.read<DashboardBloc>().add(
+                        ChangeCalendarFormat(format),
+                      );
+                },
+                onPageChanged: (focusedDay) {
+                  context.read<DashboardBloc>().add(
+                        ChangePage(focusedDay),
+                      );
+                },
+                calendarStyle: CalendarStyle(
+                  todayDecoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAttendanceDetails(BuildContext context, AttendanceModel attendance) {
+    // TODO: Implement attendance details dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Attendance Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Date: ${attendance.attendanceDate}'),
+            if (attendance.checkinTime != null)
+              Text('Check-in: ${attendance.checkinTime}'),
+            if (attendance.checkoutTime != null)
+              Text('Check-out: ${attendance.checkoutTime}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }

@@ -9,12 +9,12 @@ class DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider<DashboardRepository>(
-      create: (_) => DashboardRepository(),
-      child: BlocProvider<DashboardBloc>(
+    return RepositoryProvider(
+      create: (_) => DashboardRepository(), // ✅ NOT singleton
+      child: BlocProvider(
         create: (context) => DashboardBloc(
-          context.read<DashboardRepository>()
-        ),
+          context.read<DashboardRepository>(),
+        )..add(InitializeDashboard()),
         child: const DashboardMobileView(),
       ),
     );

@@ -1,3 +1,5 @@
+// dashboard_event.dart
+
 part of 'dashboard_bloc.dart';
 
 abstract class DashboardEvent extends Equatable {
@@ -7,50 +9,49 @@ abstract class DashboardEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+/// Initialize dashboard with attendance data
 class InitializeDashboard extends DashboardEvent {
-  final int employeeId;
-
-  const InitializeDashboard(this.employeeId);
-
-  @override
-  List<Object?> get props => [employeeId];
+  const InitializeDashboard();
 }
 
-// ✅ FIX: CheckIn event should not require CheckInModel parameter
+/// Perform check-in operation
 class CheckIn extends DashboardEvent {
   const CheckIn();
 
   @override
-  List<Object?> get props => [];
+  String toString() => 'CheckIn()';
 }
 
-// ✅ FIX: CheckOut event with optional updatedBy parameter
 class CheckOut extends DashboardEvent {
-  final String? updatedBy;
-
-  const CheckOut({this.updatedBy});
+  const CheckOut();
 
   @override
-  List<Object?> get props => [updatedBy];
+  String toString() => 'CheckOut()';
 }
 
-class UpdateTimer extends DashboardEvent {
-  const UpdateTimer();
+/// Refresh attendance data
+class RefreshDashboard extends DashboardEvent {
+  const RefreshDashboard();
+
+  @override
+  String toString() => 'RefreshDashboard()';
 }
 
+/// Select a specific day in calendar
 class SelectDay extends DashboardEvent {
   final DateTime selectedDay;
   final DateTime focusedDay;
 
-  const SelectDay({
-    required this.selectedDay,
-    required this.focusedDay,
-  });
+  const SelectDay(this.selectedDay, this.focusedDay);
 
   @override
   List<Object?> get props => [selectedDay, focusedDay];
+
+  @override
+  String toString() => 'SelectDay(selected: $selectedDay, focused: $focusedDay)';
 }
 
+/// Change calendar display format
 class ChangeCalendarFormat extends DashboardEvent {
   final CalendarFormat format;
 
@@ -58,8 +59,12 @@ class ChangeCalendarFormat extends DashboardEvent {
 
   @override
   List<Object?> get props => [format];
+
+  @override
+  String toString() => 'ChangeCalendarFormat($format)';
 }
 
+/// Change calendar page/month
 class ChangePage extends DashboardEvent {
   final DateTime focusedDay;
 
@@ -67,4 +72,7 @@ class ChangePage extends DashboardEvent {
 
   @override
   List<Object?> get props => [focusedDay];
+
+  @override
+  String toString() => 'ChangePage($focusedDay)';
 }

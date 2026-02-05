@@ -1,242 +1,257 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:hrm/core/model/check_in_model.dart';
+import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/screens/dashboard/repo/dashboard_repo.dart';
-import 'package:hrm/screens/login/repo/login_repo.dart';
 import 'package:logger/logger.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 
 part 'dashboard_event.dart';
 part 'dashboard_state.dart';
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final DashboardRepository repo;
-  Timer? _timer;
   final Logger log = Logger();
 
+  bool _isProcessing = false;
+
   DashboardBloc(this.repo) : super(DashboardState.initial()) {
-    on<InitializeDashboard>(_onInitializeDashboard);
+    on<InitializeDashboard>(_onInitialize);
     on<CheckIn>(_onCheckIn);
     on<CheckOut>(_onCheckOut);
-    on<UpdateTimer>(_onUpdateTimer);
+    on<RefreshDashboard>(_onRefresh);
     on<SelectDay>(_onSelectDay);
     on<ChangeCalendarFormat>(_onChangeCalendarFormat);
     on<ChangePage>(_onChangePage);
   }
 
-  // ─────────────────────────────────────────────
-  // INITIALIZE
-  // ─────────────────────────────────────────────
-  Future<void> _onInitializeDashboard(
+  // ───────────────── INITIALIZE ─────────────────
+  Future<void> _onInitialize(
     InitializeDashboard event,
     Emitter<DashboardState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        currentEmployeeId: event.employeeId,
-        loadingStatus: DashboardLoadingStatus.success,
-      ),
-    );
-  }
+    emit(state.copyWith(loadingStatus: DashboardLoadingStatus.loading));
 
-  // ─────────────────────────────────────────────
-  // CHECK-IN
-  // ─────────────────────────────────────────────
-  Future<void> _onCheckIn(CheckIn event, Emitter<DashboardState> emit) async {
-    if (state.currentEmployeeId == null) {
+    try {
+      final attendance = await repo.getAllAttendanceData();
+      final todayAttendance = await _getTodayAttendance();
+
+      emit(
+        state.copyWith(
+          attendanceList: attendance,
+          checkInStatus: _determineCheckInStatus(todayAttendance),
+          checkInTime: todayAttendance?.checkinTime,
+          checkOutTime: todayAttendance?.checkoutTime,
+          todaySessionsCount: _countTodaySessions(attendance),
+          loadingStatus: DashboardLoadingStatus.success,
+          errorMessage: null,
+        ),
+      );
+    } catch (e, stackTrace) {
+      log.e('Failed to initialize dashboard', error: e, stackTrace: stackTrace);
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
-          errorMessage: 'Employee ID missing',
+          errorMessage: 'Failed to load dashboard data',
+        ),
+      );
+    }
+  }
+
+  // ───────────────── CHECK IN ─────────────────
+  Future<void> _onCheckIn(CheckIn event, Emitter<DashboardState> emit) async {
+    if (_isProcessing) {
+      log.w('Check-in already in progress');
+      return;
+    }
+
+    if (!state.canCheckIn) {
+      log.w('Cannot check in - already checked in');
+      emit(
+        state.copyWith(
+          loadingStatus: DashboardLoadingStatus.failure,
+          errorMessage: 'You are already checked in',
         ),
       );
       return;
     }
 
-    emit(
-      state.copyWith(
-        loadingStatus: DashboardLoadingStatus.loading,
-        errorMessage: null,
-      ),
-    );
+    _isProcessing = true;
 
     try {
-      // 1️⃣ Get location
-      final position = await _getLocation(emit);
-      if (position == null) return;
+      emit(state.copyWith(loadingStatus: DashboardLoadingStatus.loading));
 
-      // 2️⃣ OPTIONAL image (safe)
-      File? imageFile;
-      try {
-        imageFile = await repo.captureImage();
-      } catch (e) {
-        log.w('Image capture failed, continuing without image: $e');
-        imageFile = null;
+      // Get location
+      final position = await _getLocation(emit);
+      if (position == null) {
+        _isProcessing = false;
+        return;
       }
 
-      // 3️⃣ Call API (employeeId from STATE ✅)
-      final CheckInModel model = await repo.addCheckin(
-        // employeeId: state.currentEmployeeId!,
-        latitude: position.latitude,
-        longitude: position.longitude,
-        imageFile: imageFile,
+      // Capture image
+      final File? image = await _captureImageSafely();
+
+      // Extract only filename from image path
+      String? imageName;
+      if (image != null) {
+        imageName = image.path.split('/').last;
+      }
+
+      // Perform check-in
+      final attendance = await repo.checkIn(
+        lat: position.latitude,
+        lng: position.longitude,
+        imageName: imageName,
       );
 
+      // Update state
       emit(
         state.copyWith(
           checkInStatus: CheckInStatus.checkedIn,
-          checkInTime: model.checkinTime ?? DateTime.now(),
-          elapsedTime: Duration.zero,
-          checkInModel: model,
-          currentAttendanceId: model.attendanceId,
+          checkInTime: attendance.checkinTime,
+          checkOutTime: null,
+          todaySessionsCount: state.todaySessionsCount + 1,
           loadingStatus: DashboardLoadingStatus.success,
+          errorMessage: null,
         ),
       );
 
-      _startTimer();
-      log.i('Check-in success');
-    } catch (e) {
-      log.e('Check-in error: $e');
+      // Refresh attendance list
+      // add(RefreshDashboard());
+      
+      log.i('Check-in successful at ${attendance.checkinTime}');
+    } catch (e, stackTrace) {
+      log.e('Check-in failed', error: e, stackTrace: stackTrace);
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
-          errorMessage: 'Check-in failed: ${e.toString()}',
+          errorMessage: _getUserFriendlyErrorMessage(e),
         ),
       );
+    } finally {
+      _isProcessing = false;
     }
   }
 
-  // ─────────────────────────────────────────────
-  // CHECK-OUT
-  // ─────────────────────────────────────────────
+  // ───────────────── CHECK OUT ─────────────────
   Future<void> _onCheckOut(CheckOut event, Emitter<DashboardState> emit) async {
-    // ✅ FIX: Only check for employeeId, not attendanceId
-    // since attendanceId might not be returned by the API
+    if (_isProcessing) {
+      log.w('Check-out already in progress');
+      return;
+    }
 
-    // ✅ FIX: Check if user is actually checked in
-    if (state.checkInStatus != CheckInStatus.checkedIn) {
+    if (!state.canCheckOut) {
+      log.w('Cannot check out - not checked in');
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
-          errorMessage: 'Please check in first',
+          errorMessage: 'You need to check in first',
         ),
       );
       return;
     }
 
-    emit(
-      state.copyWith(
-        loadingStatus: DashboardLoadingStatus.loading,
-        errorMessage: null,
-      ),
-    );
+    _isProcessing = true;
 
     try {
-      // 1️⃣ Get location
+      emit(state.copyWith(loadingStatus: DashboardLoadingStatus.loading));
+
+      // Get location
       final position = await _getLocation(emit);
-      if (position == null) return;
-
-      // 2️⃣ OPTIONAL image (safe)
-      File? imageFile;
-      try {
-        imageFile = await repo.captureImage();
-      } catch (e) {
-        log.w('Image capture failed, continuing without image: $e');
-        imageFile = null;
+      if (position == null) {
+        _isProcessing = false;
+        return;
       }
-      final LoginRepo _loginRepo = LoginRepo();
 
-      final userData = await _loginRepo.getUserData();
-      final id = await _loginRepo.getEmployeeId();
-      final model = await repo.addCheckout(
-        // employeeId: id!,
-        latitude: position.latitude,
-        longitude: position.longitude,
-        imageFile: imageFile,
-        // updatedBy: userData?.username,
+      // Capture image
+      final File? image = await _captureImageSafely();
+
+      // Perform check-out
+      await repo.checkOut(
+        lat: position.latitude,
+        lng: position.longitude,
+        image: image,
       );
 
-      // 4️⃣ Stop timer
-      _stopTimer();
+      final checkOutTime = DateTime.now();
 
-      // 5️⃣ Update state
+      // Update state
       emit(
         state.copyWith(
-          checkInStatus: CheckInStatus.checkedOut,
-          checkOutTime: model.checkoutTime ?? DateTime.now(),
-          checkOutModel: model,
+          checkInStatus: CheckInStatus.notCheckedIn,
+          checkOutTime: checkOutTime,
           loadingStatus: DashboardLoadingStatus.success,
+          errorMessage: null,
         ),
       );
 
-      log.i('Check-out success');
-    } catch (e) {
-      log.e('Check-out error: $e');
+      // Refresh attendance list
+      add(RefreshDashboard());
+      
+      log.i('Check-out successful at $checkOutTime');
+    } catch (e, stackTrace) {
+      log.e('Check-out failed', error: e, stackTrace: stackTrace);
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
-          errorMessage: 'Check-out failed: ${e.toString()}',
+          errorMessage: _getUserFriendlyErrorMessage(e),
         ),
       );
+    } finally {
+      _isProcessing = false;
     }
   }
 
-  // ─────────────────────────────────────────────
-  // TIMER
-  // ─────────────────────────────────────────────
-  void _onUpdateTimer(UpdateTimer event, Emitter<DashboardState> emit) {
-    emit(
-      state.copyWith(
-        elapsedTime: state.elapsedTime + const Duration(seconds: 1),
-      ),
-    );
+  // ───────────────── REFRESH ─────────────────
+  Future<void> _onRefresh(
+    RefreshDashboard event,
+    Emitter<DashboardState> emit,
+  ) async {
+    try {
+      final attendance = await repo.getAllAttendanceData();
+      final todayAttendance = await _getTodayAttendance();
+
+      emit(
+        state.copyWith(
+          attendanceList: attendance,
+          todaySessionsCount: _countTodaySessions(attendance),
+          checkInTime: todayAttendance?.checkinTime,
+          checkOutTime: todayAttendance?.checkoutTime,
+          checkInStatus: _determineCheckInStatus(todayAttendance),
+        ),
+      );
+    } catch (e, stackTrace) {
+      log.e('Refresh failed', error: e, stackTrace: stackTrace);
+      // Don't emit error state on refresh failure to avoid disrupting UX
+    }
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => add(const UpdateTimer()),
-    );
-  }
-
-  void _stopTimer() {
-    _timer?.cancel();
-    _timer = null;
-  }
-
-  // ─────────────────────────────────────────────
-  // CALENDAR
-  // ─────────────────────────────────────────────
-  void _onSelectDay(SelectDay event, Emitter<DashboardState> emit) {
-    emit(
-      state.copyWith(
-        selectedDay: event.selectedDay,
-        focusedDay: event.focusedDay,
-      ),
-    );
+  void _onSelectDay(SelectDay e, Emitter<DashboardState> emit) {
+    emit(state.copyWith(
+      selectedDay: e.selectedDay,
+      focusedDay: e.focusedDay,
+    ));
   }
 
   void _onChangeCalendarFormat(
-    ChangeCalendarFormat event,
+    ChangeCalendarFormat e,
     Emitter<DashboardState> emit,
-  ) {}
-
-  void _onChangePage(ChangePage event, Emitter<DashboardState> emit) {
-    emit(state.copyWith(focusedDay: event.focusedDay));
+  ) {
+    emit(state.copyWith(calendarFormat: e.format));
   }
 
-  // ─────────────────────────────────────────────
-  // LOCATION
-  // ─────────────────────────────────────────────
-  Future<Position?> _getLocation(Emitter emit) async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
+  void _onChangePage(ChangePage e, Emitter<DashboardState> emit) {
+    emit(state.copyWith(focusedDay: e.focusedDay));
+  }
 
+
+  Future<Position?> _getLocation(Emitter<DashboardState> emit) async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
@@ -246,30 +261,104 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         emit(
           state.copyWith(
             loadingStatus: DashboardLoadingStatus.failure,
-            errorMessage: 'Location permission denied',
+            errorMessage: 'Location permission is required for attendance',
           ),
         );
         return null;
       }
 
-      return await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
       );
+
+      return position;
     } catch (e) {
-      log.e('Location error: $e');
+      log.e('Failed to get location', error: e);
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
-          errorMessage: 'Unable to fetch location',
+          errorMessage: 'Failed to get your location',
         ),
       );
       return null;
     }
   }
 
-  @override
-  Future<void> close() {
-    _stopTimer();
-    return super.close();
+  Future<File?> _captureImageSafely() async {
+    try {
+      final image = await repo.captureImage();
+      return image;
+    } catch (e) {
+      log.e('Failed to capture image', error: e);
+      return null;
+    }
+  }
+
+  /// Gets today's attendance record
+  Future<AttendanceModel?> _getTodayAttendance() async {
+    try {
+      return await repo.getAttendanceDataByDate(date: DateTime.now());
+    } catch (e) {
+      log.e('Failed to get today\'s attendance', error: e);
+      return null;
+    }
+  }
+
+  /// Determines check-in status based on attendance data
+  CheckInStatus _determineCheckInStatus(AttendanceModel? todayAttendance) {
+    if (todayAttendance == null) {
+      return CheckInStatus.notCheckedIn;
+    }
+
+    // If checked in but not checked out
+    if (todayAttendance.checkinTime != null && 
+        todayAttendance.checkoutTime == null) {
+      return CheckInStatus.checkedIn;
+    }
+
+    // If already checked out for the day
+    if (todayAttendance.checkoutTime != null) {
+      return CheckInStatus.notCheckedIn;
+    }
+
+    return CheckInStatus.notCheckedIn;
+  }
+
+  /// Counts today's attendance sessions
+  int _countTodaySessions(List<AttendanceModel> attendance) {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    return attendance.where((e) => e.attendanceDate == today).length;
+  }
+
+  /// Converts technical errors to user-friendly messages
+  String _getUserFriendlyErrorMessage(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('network') || errorString.contains('socket')) {
+      return 'Network error. Please check your connection';
+    }
+    
+    if (errorString.contains('timeout')) {
+      return 'Request timed out. Please try again';
+    }
+    
+    if (errorString.contains('permission')) {
+      return 'Permission denied. Please grant required permissions';
+    }
+    
+    if (errorString.contains('user not logged in')) {
+      return 'Session expired. Please login again';
+    }
+
+    // Return specific error message if available
+    if (error is Exception) {
+      final message = error.toString().replaceFirst('Exception: ', '');
+      if (message.isNotEmpty && message.length < 100) {
+        return message;
+      }
+    }
+
+    return 'An error occurred. Please try again';
   }
 }

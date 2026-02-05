@@ -2,13 +2,23 @@ import 'dart:convert';
 import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/model/login_model.dart';
 import 'package:hrm/core/repo/api_repo.dart';
-import 'package:hrm/core/repo/localdb_repo.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginRepo {
   final log = Logger();
-  final LocalDBrepostiory _dbHelper = LocalDBrepostiory();
+
+  static const String _keyAccessToken = 'access_token';
+  static const String _keyUserId = 'user_id';
+  static const String _keyEmployeeId = 'employee_id';
+  static const String _keyCompanyId = 'company_id';
+  static const String _keyUsername = 'username';
+  static const String _keyUserRole = 'user_role';
+  static const String _keyEmailId = 'email_id';
+  static const String _keyTokenType = 'token_type';
+  static const String _keyIsLoggedIn = 'is_logged_in';
+  static const String _keyUserData = 'user_data';
 
   Future<LoginModel> requestLogin({
     required String email,
@@ -41,25 +51,23 @@ class LoginRepo {
         if (loginModel.success == true && loginModel.token != null) {
           if (loginModel.data != null) {
             try {
-              await _dbHelper.saveUser(loginModel.data!);
-              log.d('User data saved to SQLite database');
+              await _saveUserData(loginModel.data!);
+              log.d('User data saved to SharedPreferences');
             } catch (e) {
-              log.e('Error saving user to SQLite: $e');
+              log.e('Error saving user to SharedPreferences: $e');
             }
           }
-
           if (loginModel.token != null) {
-            await _dbHelper.saveToken(loginModel.token!);
+            await _saveToken(loginModel.token!);
+            log.d('Token saved to SharedPreferences');
           }
 
           if (loginModel.userId != null) {
-            await _dbHelper.saveUserId(loginModel.userId.toString());
+            await _saveUserId(loginModel.userId!);
+            log.d('User ID saved to SharedPreferences');
           }
-              if (loginModel.responder != null) {
-            await _dbHelper.saveUserId(loginModel.userId.toString());
-          }
-
-          await _dbHelper.setLoggedIn(true);
+          await _setLoggedIn(true);
+          log.d('Login status set to true');
         }
 
         return loginModel;
@@ -81,9 +89,45 @@ class LoginRepo {
     }
   }
 
+Future<void> _saveUserData(LoginData userData) async {
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.setString(_keyUserData, jsonEncode(userData.toJson()));
+  await prefs.setInt(_keyUserId, userData.userId);
+  await prefs.setString(_keyUsername, userData.username);
+
+  if (userData.employeeId != null) {
+    await prefs.setInt(_keyEmployeeId, userData.employeeId!);
+  }
+
+  await prefs.setInt(_keyCompanyId, userData.companyId);
+  await prefs.setString(_keyUserRole, userData.userRole.join(','));
+  await prefs.setString(_keyTokenType, userData.tokenType);
+
+  if (userData.emailId != null && userData.emailId!.isNotEmpty) {
+    await prefs.setString(_keyEmailId, userData.emailId!);
+  }
+}
+
+
+  Future<void> _saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAccessToken, token);
+  }
+  Future<void> _saveUserId(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyUserId, userId);
+  }
+
+  Future<void> _setLoggedIn(bool isLoggedIn) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsLoggedIn, isLoggedIn);
+  }
+
   Future<bool> isLoggedIn() async {
     try {
-      return await _dbHelper.isLoggedIn();
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_keyIsLoggedIn) ?? false;
     } catch (e) {
       log.e('Error checking login status: $e');
       return false;
@@ -92,7 +136,8 @@ class LoginRepo {
 
   Future<String?> getToken() async {
     try {
-      final token = await _dbHelper.getAccessToken();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_keyAccessToken);
       return (token != null && token.isNotEmpty) ? token : null;
     } catch (e) {
       log.e('Error getting token: $e');
@@ -102,7 +147,8 @@ class LoginRepo {
 
   Future<String?> getUserId() async {
     try {
-      final userId = await _dbHelper.getUserId();
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt(_keyUserId);
       return userId?.toString();
     } catch (e) {
       log.e('Error getting user ID: $e');
@@ -112,7 +158,14 @@ class LoginRepo {
 
   Future<LoginData?> getUserData() async {
     try {
-      return await _dbHelper.getUser();
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString(_keyUserData);
+
+      if (userDataString != null && userDataString.isNotEmpty) {
+        final Map<String, dynamic> userDataMap = jsonDecode(userDataString);
+        return LoginData.fromJson(userDataMap);
+      }
+      return null;
     } catch (e) {
       log.e('Error getting user data: $e');
       return null;
@@ -121,27 +174,63 @@ class LoginRepo {
 
   Future<int?> getEmployeeId() async {
     try {
-      return await _dbHelper.getEmployeeId();
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(_keyEmployeeId);
     } catch (e) {
       log.e('Error getting employee ID: $e');
       return null;
     }
   }
 
-  /// Get company ID from SQLite
   Future<int?> getCompanyId() async {
     try {
-      return await _dbHelper.getCompanyId();
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(_keyCompanyId);
     } catch (e) {
       log.e('Error getting company ID: $e');
       return null;
     }
   }
 
+  Future<String?> getUsername() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keyUsername);
+    } catch (e) {
+      log.e('Error getting username: $e');
+      return null;
+    }
+  }
+
+  Future<List<String>?> getUserRoles() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rolesString = prefs.getString(_keyUserRole);
+      if (rolesString != null && rolesString.isNotEmpty) {
+        return rolesString.split(',');
+      }
+      return null;
+    } catch (e) {
+      log.e('Error getting user roles: $e');
+      return null;
+    }
+  }
+
+  Future<String?> getEmailId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keyEmailId);
+    } catch (e) {
+      log.e('Error getting email ID: $e');
+      return null;
+    }
+  }
+
   Future<void> updateToken(String newToken) async {
     try {
-      await _dbHelper.updateAccessToken(newToken);
-      log.d('Token updated in SQLite');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyAccessToken, newToken);
+      log.d('Token updated in SharedPreferences');
     } catch (e) {
       log.e('Error updating token: $e');
       rethrow;
@@ -150,8 +239,8 @@ class LoginRepo {
 
   Future<void> logout() async {
     try {
-      await _dbHelper.logout();
-      log.d('User logged out and data cleared from SQLite');
+      await clearAllStorage();
+      log.d('User logged out and data cleared from SharedPreferences');
     } catch (e) {
       log.e('Error during logout: $e');
       rethrow;
@@ -171,8 +260,9 @@ class LoginRepo {
 
   Future<void> clearAllStorage() async {
     try {
-      await _dbHelper.clearAllData();
-      log.d('All storage cleared from SQLite');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      log.d('All storage cleared from SharedPreferences');
     } catch (e) {
       log.e('Error clearing storage: $e');
     }
@@ -180,17 +270,22 @@ class LoginRepo {
 
   Future<Map<String, dynamic>> getDebugInfo() async {
     try {
-      final dbUser = await _dbHelper.getUserInfo();
-      final dbLoggedIn = await _dbHelper.isLoggedIn();
-      final token = await _dbHelper.getAccessToken();
-      final userId = await _dbHelper.getUserId();
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
+      final token = prefs.getString(_keyAccessToken);
+      final userId = prefs.getInt(_keyUserId);
+      final username = prefs.getString(_keyUsername);
+      final employeeId = prefs.getInt(_keyEmployeeId);
+      final companyId = prefs.getInt(_keyCompanyId);
 
       return {
-        'sqlite': {
-          'logged_in': dbLoggedIn,
+        'shared_preferences': {
+          'logged_in': isLoggedIn,
           'token': token?.substring(0, 20) ?? 'null',
           'user_id': userId,
-          'user_data': dbUser,
+          'username': username,
+          'employee_id': employeeId,
+          'company_id': companyId,
         },
       };
     } catch (e) {

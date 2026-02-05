@@ -21,19 +21,18 @@ class _LoginMobileViewContent extends StatelessWidget {
     return Scaffold(
       body: BlocConsumer<LoginBloc, LoginState>(
         listener: (context, state) {
-          /// Snackbar messages
           if (state.message != null && state.message!.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message!),
-                backgroundColor:
-                    state.status == LoginStatus.failure ? Colors.red : Colors.green,
+                backgroundColor: state.status == LoginStatus.failure
+                    ? Colors.red
+                    : Colors.green,
               ),
             );
           }
 
-          /// ✅ Navigate to dashboard on success
-          if (state.status == LoginStatus.success && state.userData != null) {
+          if (state.status == LoginStatus.success ) {
             context.goNamed(RouteName.dashboard);
           }
         },
@@ -51,6 +50,7 @@ class _LoginMobileViewContent extends StatelessWidget {
     );
   }
 }
+
 class _LoginForm extends StatelessWidget {
   final LoginState state;
 
@@ -58,6 +58,8 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = state.status == LoginStatus.loading;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -71,10 +73,9 @@ class _LoginForm extends StatelessWidget {
         Text(
           'HRM System',
           textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .headlineMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
 
         const SizedBox(height: 8),
@@ -87,7 +88,7 @@ class _LoginForm extends StatelessWidget {
         const SizedBox(height: 48),
 
         _EmailField(
-          isLoading: state.isLoading,
+          isLoading: isLoading,
           isEmailValid: state.isEmailValid,
           currentEmail: state.email,
         ),
@@ -95,7 +96,7 @@ class _LoginForm extends StatelessWidget {
         const SizedBox(height: 16),
 
         _PasswordField(
-          isLoading: state.isLoading,
+          isLoading: isLoading,
           isPasswordValid: state.isPasswordValid,
           currentPassword: state.password,
         ),
@@ -106,11 +107,12 @@ class _LoginForm extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        _ForgotPasswordButton(isLoading: state.isLoading),
+        // _ForgotPasswordButton(isLoading: isLoading),
       ],
     );
   }
 }
+
 class _EmailField extends StatefulWidget {
   final bool isLoading;
   final bool isEmailValid;
@@ -136,6 +138,12 @@ class _EmailFieldState extends State<_EmailField> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: _controller,
@@ -155,6 +163,7 @@ class _EmailFieldState extends State<_EmailField> {
     );
   }
 }
+
 class _PasswordField extends StatefulWidget {
   final bool isLoading;
   final bool isPasswordValid;
@@ -172,6 +181,7 @@ class _PasswordField extends StatefulWidget {
 
 class _PasswordFieldState extends State<_PasswordField> {
   late final TextEditingController _controller;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -180,14 +190,30 @@ class _PasswordFieldState extends State<_PasswordField> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: _controller,
       enabled: !widget.isLoading,
-      obscureText: true,
+      obscureText: _obscurePassword,
       decoration: InputDecoration(
         labelText: 'Password',
         prefixIcon: const Icon(Icons.lock),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         errorText: _controller.text.isNotEmpty && !widget.isPasswordValid
             ? 'Minimum 6 characters'
@@ -199,6 +225,7 @@ class _PasswordFieldState extends State<_PasswordField> {
     );
   }
 }
+
 class _LoginButton extends StatelessWidget {
   final LoginState state;
 
@@ -206,26 +233,25 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = state.status == LoginStatus.loading;
+    final isFormValid = state.isEmailValid && state.isPasswordValid;
+
     return ElevatedButton(
-      onPressed: state.isLoading ||
-              !state.isEmailValid ||
-              !state.isPasswordValid
+      onPressed: isLoading || !isFormValid
           ? null
           : () {
               context.read<LoginBloc>().add(
-                    LoginSubmitted(
-                      email: state.email.trim(),
-                      password: state.password,
-                    ),
-                  );
+                LoginSubmitted(
+                  email: state.email.trim(),
+                  password: state.password,
+                ),
+              );
             },
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      child: state.isLoading
+      child: isLoading
           ? const SizedBox(
               height: 20,
               width: 20,
@@ -238,16 +264,26 @@ class _LoginButton extends StatelessWidget {
     );
   }
 }
-class _ForgotPasswordButton extends StatelessWidget {
-  final bool isLoading;
 
-  const _ForgotPasswordButton({required this.isLoading});
+// class _ForgotPasswordButton extends StatelessWidget {
+//   final bool isLoading;
 
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: isLoading ? null : () {},
-      child: const Text('Forgot Password?'),
-    );
-  }
-}
+//   const _ForgotPasswordButton({required this.isLoading});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return TextButton(
+//       onPressed: isLoading
+//           ? null
+//           : () {
+//               // TODO: Implement forgot password functionality
+//               ScaffoldMessenger.of(context).showSnackBar(
+//                 const SnackBar(
+//                   content: Text('Forgot password feature coming soon'),
+//                 ),
+//               );
+//             },
+//       child: const Text('Forgot Password?'),
+//     );
+//   }
+// }

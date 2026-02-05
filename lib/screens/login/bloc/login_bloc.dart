@@ -1,21 +1,19 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/model/login_model.dart';
-import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/screens/login/repo/login_repo.dart';
+import 'package:logger/logger.dart';
 
 part 'login_event.dart';
 part 'login_state.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final LoginRepo _loginRepo;
-  final PreferencesRepository _prefsRepo;
+  final log = Logger();
 
   LoginBloc({
     LoginRepo? loginRepo,
-    PreferencesRepository? prefsRepo,
   })  : _loginRepo = loginRepo ?? LoginRepo(),
-        _prefsRepo = prefsRepo ?? PreferencesRepository(),
         super(LoginState.initial()) {
     on<EmailChanged>(_onEmailChanged);
     on<PasswordChanged>(_onPasswordChanged);
@@ -52,15 +50,16 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       message: 'Logging in...',
     ));
 
+      log.d('_onLoginSubmitted::$event');
     try {
-      // Call the login repository
       final loginModel = await _loginRepo.requestLogin(
         email: event.email,
         password: event.password,
       );
+      
+      log.d('loginModel:${loginModel.toJson()}');
 
-      // Check if login was successful
-      if (loginModel.success == true && loginModel.data != null) {
+      if (loginModel.success == true) {
         emit(state.copyWith(
           status: LoginStatus.success,
           message: loginModel.message ?? 'Login successful',
@@ -68,6 +67,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           token: loginModel.token,
           userId: loginModel.userId,
         ));
+        log.d('loginModel.success:::${loginModel.status}:::::::${loginModel.data}');
       } else {
         emit(state.copyWith(
           status: LoginStatus.failure,
@@ -75,6 +75,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         ));
       }
     } catch (e) {
+      log.e('Login error: $e');
       emit(state.copyWith(
         status: LoginStatus.failure,
         message: e.toString().replaceAll('Exception: ', ''),
@@ -94,13 +95,16 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     try {
       // Check if user is logged in
       final isLoggedIn = await _loginRepo.isLoggedIn();
+      log.d('isLoggedIn: $isLoggedIn');
 
       if (isLoggedIn) {
-        // Get token from storage
         final token = await _loginRepo.getToken();
         final userId = await _loginRepo.getUserId();
-        
         final userData = await _loginRepo.getUserData();
+
+        log.d('Token: $token');
+        log.d('UserId: $userId');
+        log.d('UserData: ${userData?.toJson()}');
 
         if (token != null && userData != null) {
           emit(state.copyWith(
@@ -111,12 +115,15 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
             userData: userData,
           ));
         } else {
+          log.w('Token or userData is null, resetting to initial state');
           emit(LoginState.initial());
         }
       } else {
+        log.d('User not logged in, showing login screen');
         emit(LoginState.initial());
       }
     } catch (e) {
+      log.e('Error checking login status: $e');
       emit(LoginState.initial());
     }
   }
@@ -132,9 +139,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     try {
       await _loginRepo.logout();
+      log.d('Logout successful');
       
       emit(LoginState.initial());
     } catch (e) {
+      log.e('Logout error: $e');
       emit(state.copyWith(
         status: LoginStatus.failure,
         message: 'Logout failed: ${e.toString()}',
@@ -150,12 +159,16 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       final userData = await _loginRepo.getUserData();
       
       if (userData != null) {
+        log.d('User data refreshed: ${userData.toJson()}');
         emit(state.copyWith(
           userData: userData,
           message: 'User data refreshed',
         ));
+      } else {
+        log.w('No user data found to refresh');
       }
     } catch (e) {
+      log.e('Failed to refresh user data: $e');
       emit(state.copyWith(
         message: 'Failed to refresh user data',
       ));
