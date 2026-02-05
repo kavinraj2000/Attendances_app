@@ -19,13 +19,12 @@ class User {
     required this.tokenType,
   });
 
-  // Convert User object to Map for SQLite storage
   Map<String, dynamic> toMap() {
     return {
       'user_id': userId,
       'username': username,
       'employee_id': employeeId,
-      'user_role': userRole.join(','), // Store roles as comma-separated string
+      'user_role': userRole.join(','), 
       'company_id': companyId,
       'email_id': emailId,
       'access_token': accessToken,
@@ -38,7 +37,7 @@ class User {
       userId: map['user_id'] as int,
       username: map['username'] as String,
       employeeId: map['employee_id'] as int,
-      userRole: (map['user_role'] as String).split(','), // Split comma-separated roles
+      userRole: (map['user_role'] as String).split(','),
       companyId: map['company_id'] as int,
       emailId: map['email_id'] as String,
       accessToken: map['access_token'] as String,

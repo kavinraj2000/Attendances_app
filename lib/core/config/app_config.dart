@@ -21,7 +21,18 @@ class AppConfig {
   static const int maxPasswordLength = 32;
   static const int minUsernameLength = 3;
   static const int maxUsernameLength = 20;
-   static const String tokenKey = 'auth_token';
+  static const String tokenKey = 'auth_token';
   static const String userIdKey = 'user_id';
   static const String isLoggedInKey = 'is_logged_in';
+  static const String keyAccessToken = 'access_token';
+  static const String UserId = 'user_id';
+  static const String EmployeeId = 'employee_id';
+  static const String CompanyId = 'company_id';
+  static const String Username = 'username';
+  static const String UserRole = 'user_role';
+  static const String EmailId = 'email_id';
+  static const String TokenType = 'token_type';
+  static const String IsLoggedIn = 'is_logged_in';
+  static const String UserData = 'user_data';
+  static const String AccessToken = 'access_token';
 }

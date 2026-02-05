@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/constants/route_constants.dart';
+import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/core/widgets/app_widget/app_widget.dart';
 import 'package:hrm/core/widgets/app_widget/bottom_nav_bar.dart';
-import 'package:hrm/screens/login/repo/login_repo.dart';
 
 class NavigationHelper extends StatefulWidget {
   final Widget child;
@@ -31,8 +31,8 @@ class NavigationHelper extends StatefulWidget {
 
 class _NavigationHelperState extends State<NavigationHelper> {
   late final MainShellController _controller;
-  final LoginRepo _loginRepo = LoginRepo();
-  
+  final PreferencesRepository _loginRepo = PreferencesRepository();
+
   String _userName = 'User';
   String _greeting = 'Good Morning';
   String? _avatarUrl;
@@ -56,7 +56,7 @@ class _NavigationHelperState extends State<NavigationHelper> {
   Future<void> _loadUserData() async {
     try {
       final userData = await _loginRepo.getUserData();
-      
+
       if (userData != null) {
         setState(() {
           _userName = userData.username;
@@ -128,7 +128,7 @@ class _NavigationHelperState extends State<NavigationHelper> {
       onPopInvoked: _handlePopInvoked,
       child: Scaffold(
         appBar: _isLoadingUserData
-            ? null 
+            ? null
             : CustomAppBar(
                 userName: _userName,
                 greeting: _greeting,

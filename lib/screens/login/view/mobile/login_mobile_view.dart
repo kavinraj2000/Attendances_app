@@ -107,7 +107,6 @@ class _LoginForm extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        // _ForgotPasswordButton(isLoading: isLoading),
       ],
     );
   }
@@ -265,25 +264,4 @@ class _LoginButton extends StatelessWidget {
   }
 }
 
-// class _ForgotPasswordButton extends StatelessWidget {
-//   final bool isLoading;
 
-//   const _ForgotPasswordButton({required this.isLoading});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return TextButton(
-//       onPressed: isLoading
-//           ? null
-//           : () {
-//               // TODO: Implement forgot password functionality
-//               ScaffoldMessenger.of(context).showSnackBar(
-//                 const SnackBar(
-//                   content: Text('Forgot password feature coming soon'),
-//                 ),
-//               );
-//             },
-//       child: const Text('Forgot Password?'),
-//     );
-//   }
-// }

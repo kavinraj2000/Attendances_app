@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/model/login_model.dart';
+import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/screens/login/repo/login_repo.dart';
 import 'package:logger/logger.dart';
 
@@ -10,11 +11,9 @@ part 'login_state.dart';
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final LoginRepo _loginRepo;
   final log = Logger();
+  final pref = PreferencesRepository();
 
-  LoginBloc({
-    LoginRepo? loginRepo,
-  })  : _loginRepo = loginRepo ?? LoginRepo(),
-        super(LoginState.initial()) {
+  LoginBloc(this._loginRepo) : super(LoginState.initial()) {
     on<EmailChanged>(_onEmailChanged);
     on<PasswordChanged>(_onPasswordChanged);
     on<LoginSubmitted>(_onLoginSubmitted);
@@ -24,62 +23,59 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   }
 
   void _onEmailChanged(EmailChanged event, Emitter<LoginState> emit) {
-    // Email validation
     final isValid = _isValidEmail(event.email);
-    emit(state.copyWith(
-      email: event.email,
-      isEmailValid: isValid,
-    ));
+    emit(state.copyWith(email: event.email, isEmailValid: isValid));
   }
 
   void _onPasswordChanged(PasswordChanged event, Emitter<LoginState> emit) {
-    // Password validation
     final isValid = event.password.length >= 6;
-    emit(state.copyWith(
-      password: event.password,
-      isPasswordValid: isValid,
-    ));
+    emit(state.copyWith(password: event.password, isPasswordValid: isValid));
   }
 
   Future<void> _onLoginSubmitted(
     LoginSubmitted event,
     Emitter<LoginState> emit,
   ) async {
-    emit(state.copyWith(
-      status: LoginStatus.loading,
-      message: 'Logging in...',
-    ));
+    emit(state.copyWith(status: LoginStatus.loading, message: 'Logging in...'));
 
-      log.d('_onLoginSubmitted::$event');
+    log.d('_onLoginSubmitted::$event');
     try {
       final loginModel = await _loginRepo.requestLogin(
         email: event.email,
         password: event.password,
       );
-      
+
       log.d('loginModel:${loginModel.toJson()}');
 
       if (loginModel.success == true) {
-        emit(state.copyWith(
-          status: LoginStatus.success,
-          message: loginModel.message ?? 'Login successful',
-          userData: loginModel.data,
-          token: loginModel.token,
-          userId: loginModel.userId,
-        ));
-        log.d('loginModel.success:::${loginModel.status}:::::::${loginModel.data}');
+        emit(
+          state.copyWith(
+            status: LoginStatus.success,
+            message: loginModel.message ?? 'Login successful',
+            userData: loginModel.data,
+            token: loginModel.token,
+            userId: loginModel.userId,
+          ),
+        );
+        log.d(
+          'loginModel.success:::${loginModel.status}:::::::${loginModel.data}',
+        );
       } else {
-        emit(state.copyWith(
-          status: LoginStatus.failure,
-          message: loginModel.message ?? 'Login failed',
-        ));
+        emit(
+          state.copyWith(
+            status: LoginStatus.failure,
+            message: loginModel.message ?? 'Login failed',
+          ),
+        );
       }
     } catch (e) {
       log.e('Login error: $e');
-      emit(state.copyWith(
-        status: LoginStatus.failure,
-        message: e.toString().replaceAll('Exception: ', ''),
-      ));
+      emit(
+        state.copyWith(
+          status: LoginStatus.failure,
+          message: e.toString().replaceAll('Exception: ', ''),
+        ),
+      );
     }
   }
 
@@ -87,33 +83,36 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     CheckLoginStatus event,
     Emitter<LoginState> emit,
   ) async {
-    emit(state.copyWith(
-      status: LoginStatus.loading,
-      message: 'Checking login status...',
-    ));
+    emit(
+      state.copyWith(
+        status: LoginStatus.loading,
+        message: 'Checking login status...',
+      ),
+    );
 
     try {
-      // Check if user is logged in
-      final isLoggedIn = await _loginRepo.isLoggedIn();
+      final isLoggedIn = await pref.isLoggedIn();
       log.d('isLoggedIn: $isLoggedIn');
 
       if (isLoggedIn) {
-        final token = await _loginRepo.getToken();
-        final userId = await _loginRepo.getUserId();
-        final userData = await _loginRepo.getUserData();
+        final token = await pref.getToken();
+        final userId = await pref.getUserId();
+        final userData = await pref.getUserData();
 
         log.d('Token: $token');
         log.d('UserId: $userId');
         log.d('UserData: ${userData?.toJson()}');
 
         if (token != null && userData != null) {
-          emit(state.copyWith(
-            status: LoginStatus.success,
-            message: 'Already logged in',
-            token: token,
-            userId: userId != null ? int.tryParse(userId) : null,
-            userData: userData,
-          ));
+          emit(
+            state.copyWith(
+              status: LoginStatus.success,
+              message: 'Already logged in',
+              token: token,
+              userId: userId != null ? int.tryParse(userId) : null,
+              userData: userData,
+            ),
+          );
         } else {
           log.w('Token or userData is null, resetting to initial state');
           emit(LoginState.initial());
@@ -132,22 +131,23 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LogoutRequested event,
     Emitter<LoginState> emit,
   ) async {
-    emit(state.copyWith(
-      status: LoginStatus.loading,
-      message: 'Logging out...',
-    ));
+    emit(
+      state.copyWith(status: LoginStatus.loading, message: 'Logging out...'),
+    );
 
     try {
-      await _loginRepo.logout();
+      await pref.logout();
       log.d('Logout successful');
-      
+
       emit(LoginState.initial());
     } catch (e) {
       log.e('Logout error: $e');
-      emit(state.copyWith(
-        status: LoginStatus.failure,
-        message: 'Logout failed: ${e.toString()}',
-      ));
+      emit(
+        state.copyWith(
+          status: LoginStatus.failure,
+          message: 'Logout failed: ${e.toString()}',
+        ),
+      );
     }
   }
 
@@ -156,22 +156,19 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     Emitter<LoginState> emit,
   ) async {
     try {
-      final userData = await _loginRepo.getUserData();
-      
+      final userData = await pref.getUserData();
+
       if (userData != null) {
         log.d('User data refreshed: ${userData.toJson()}');
-        emit(state.copyWith(
-          userData: userData,
-          message: 'User data refreshed',
-        ));
+        emit(
+          state.copyWith(userData: userData, message: 'User data refreshed'),
+        );
       } else {
         log.w('No user data found to refresh');
       }
     } catch (e) {
       log.e('Failed to refresh user data: $e');
-      emit(state.copyWith(
-        message: 'Failed to refresh user data',
-      ));
+      emit(state.copyWith(message: 'Failed to refresh user data'));
     }
   }
 

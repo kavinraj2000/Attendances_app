@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hrm/core/model/attances_model.dart';
+import 'package:hrm/core/services/image_capture_service.dart';
 import 'package:hrm/screens/dashboard/repo/dashboard_repo.dart';
 import 'package:logger/logger.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -22,13 +23,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<InitializeDashboard>(_onInitialize);
     on<CheckIn>(_onCheckIn);
     on<CheckOut>(_onCheckOut);
-    on<RefreshDashboard>(_onRefresh);
+    // on<RefreshDashboard>(_onRefresh);
     on<SelectDay>(_onSelectDay);
     on<ChangeCalendarFormat>(_onChangeCalendarFormat);
     on<ChangePage>(_onChangePage);
   }
 
-  // ───────────────── INITIALIZE ─────────────────
   Future<void> _onInitialize(
     InitializeDashboard event,
     Emitter<DashboardState> emit,
@@ -61,7 +61,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
-  // ───────────────── CHECK IN ─────────────────
   Future<void> _onCheckIn(CheckIn event, Emitter<DashboardState> emit) async {
     if (_isProcessing) {
       log.w('Check-in already in progress');
@@ -84,30 +83,25 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     try {
       emit(state.copyWith(loadingStatus: DashboardLoadingStatus.loading));
 
-      // Get location
       final position = await _getLocation(emit);
       if (position == null) {
         _isProcessing = false;
         return;
       }
 
-      // Capture image
       final File? image = await _captureImageSafely();
 
-      // Extract only filename from image path
       String? imageName;
       if (image != null) {
         imageName = image.path.split('/').last;
       }
 
-      // Perform check-in
       final attendance = await repo.checkIn(
         lat: position.latitude,
         lng: position.longitude,
         imageName: imageName,
       );
 
-      // Update state
       emit(
         state.copyWith(
           checkInStatus: CheckInStatus.checkedIn,
@@ -119,8 +113,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         ),
       );
 
-      // Refresh attendance list
-      // add(RefreshDashboard());
+    
       
       log.i('Check-in successful at ${attendance.checkinTime}');
     } catch (e, stackTrace) {
@@ -136,7 +129,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
-  // ───────────────── CHECK OUT ─────────────────
   Future<void> _onCheckOut(CheckOut event, Emitter<DashboardState> emit) async {
     if (_isProcessing) {
       log.w('Check-out already in progress');
@@ -159,17 +151,14 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     try {
       emit(state.copyWith(loadingStatus: DashboardLoadingStatus.loading));
 
-      // Get location
       final position = await _getLocation(emit);
       if (position == null) {
         _isProcessing = false;
         return;
       }
 
-      // Capture image
       final File? image = await _captureImageSafely();
 
-      // Perform check-out
       await repo.checkOut(
         lat: position.latitude,
         lng: position.longitude,
@@ -178,7 +167,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
       final checkOutTime = DateTime.now();
 
-      // Update state
       emit(
         state.copyWith(
           checkInStatus: CheckInStatus.notCheckedIn,
@@ -188,7 +176,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         ),
       );
 
-      // Refresh attendance list
       add(RefreshDashboard());
       
       log.i('Check-out successful at $checkOutTime');
@@ -200,34 +187,32 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           errorMessage: _getUserFriendlyErrorMessage(e),
         ),
       );
-    } finally {
-      _isProcessing = false;
+    // } finally {
+    //   _isProcessing = false;
     }
   }
 
-  // ───────────────── REFRESH ─────────────────
-  Future<void> _onRefresh(
-    RefreshDashboard event,
-    Emitter<DashboardState> emit,
-  ) async {
-    try {
-      final attendance = await repo.getAllAttendanceData();
-      final todayAttendance = await _getTodayAttendance();
+  // Future<void> _onRefresh(
+  //   RefreshDashboard event,
+  //   Emitter<DashboardState> emit,
+  // ) async {
+  //   try {
+  //     final attendance = await repo.getAllAttendanceData();
+  //     final todayAttendance = await _getTodayAttendance();
 
-      emit(
-        state.copyWith(
-          attendanceList: attendance,
-          todaySessionsCount: _countTodaySessions(attendance),
-          checkInTime: todayAttendance?.checkinTime,
-          checkOutTime: todayAttendance?.checkoutTime,
-          checkInStatus: _determineCheckInStatus(todayAttendance),
-        ),
-      );
-    } catch (e, stackTrace) {
-      log.e('Refresh failed', error: e, stackTrace: stackTrace);
-      // Don't emit error state on refresh failure to avoid disrupting UX
-    }
-  }
+  //     emit(
+  //       state.copyWith(
+  //         attendanceList: attendance,
+  //         todaySessionsCount: _countTodaySessions(attendance),
+  //         checkInTime: todayAttendance?.checkinTime,
+  //         checkOutTime: todayAttendance?.checkoutTime,
+  //         checkInStatus: _determineCheckInStatus(todayAttendance),
+  //       ),
+  //     );
+  //   } catch (e, stackTrace) {
+  //     log.e('Refresh failed', error: e, stackTrace: stackTrace);
+  //   }
+  // }
 
   void _onSelectDay(SelectDay e, Emitter<DashboardState> emit) {
     emit(state.copyWith(
@@ -287,7 +272,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   Future<File?> _captureImageSafely() async {
     try {
-      final image = await repo.captureImage();
+      final image = await captureImage();
       return image;
     } catch (e) {
       log.e('Failed to capture image', error: e);
@@ -295,7 +280,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
-  /// Gets today's attendance record
   Future<AttendanceModel?> _getTodayAttendance() async {
     try {
       return await repo.getAttendanceDataByDate(date: DateTime.now());
@@ -305,19 +289,16 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
-  /// Determines check-in status based on attendance data
   CheckInStatus _determineCheckInStatus(AttendanceModel? todayAttendance) {
     if (todayAttendance == null) {
       return CheckInStatus.notCheckedIn;
     }
 
-    // If checked in but not checked out
     if (todayAttendance.checkinTime != null && 
         todayAttendance.checkoutTime == null) {
       return CheckInStatus.checkedIn;
     }
 
-    // If already checked out for the day
     if (todayAttendance.checkoutTime != null) {
       return CheckInStatus.notCheckedIn;
     }
@@ -325,13 +306,11 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     return CheckInStatus.notCheckedIn;
   }
 
-  /// Counts today's attendance sessions
   int _countTodaySessions(List<AttendanceModel> attendance) {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     return attendance.where((e) => e.attendanceDate == today).length;
   }
 
-  /// Converts technical errors to user-friendly messages
   String _getUserFriendlyErrorMessage(dynamic error) {
     final errorString = error.toString().toLowerCase();
 
@@ -351,7 +330,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       return 'Session expired. Please login again';
     }
 
-    // Return specific error message if available
     if (error is Exception) {
       final message = error.toString().replaceFirst('Exception: ', '');
       if (message.isNotEmpty && message.length < 100) {

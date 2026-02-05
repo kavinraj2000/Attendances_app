@@ -1,5 +1,3 @@
-// attendance_model.dart - Enhanced version with all required fields
-
 import 'package:equatable/equatable.dart';
 
 class AttendanceModel extends Equatable {
@@ -37,7 +35,6 @@ class AttendanceModel extends Equatable {
     this.modifiedAt,
   });
 
-  /// Creates a copy with modified fields
   AttendanceModel copyWith({
     String? id,
     String? employeeId,
@@ -74,7 +71,6 @@ class AttendanceModel extends Equatable {
     );
   }
 
-  /// Creates from JSON
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
       id: json['id']?.toString(),
@@ -95,14 +91,13 @@ class AttendanceModel extends Equatable {
     );
   }
 
-  /// Converts to JSON
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
       'employee_id': employeeId,
       'attendance_date': attendanceDate,
-      if (checkinTime != null) 'checkin_time': checkinTime!.toIso8601String(),
-      if (checkoutTime != null) 'checkout_time': checkoutTime!.toIso8601String(),
+      if (checkinTime != null) 'checkin_time': checkinTime!,
+      if (checkoutTime != null) 'checkout_time': checkoutTime!,
       if (checkinLatitude != null) 'checkin_latitude': checkinLatitude,
       if (checkinLongitude != null) 'checkin_longitude': checkinLongitude,
       if (checkoutLatitude != null) 'checkout_latitude': checkoutLatitude,
@@ -111,18 +106,15 @@ class AttendanceModel extends Equatable {
       if (checkoutImage != null) 'checkout_image': checkoutImage,
       if (createdBy != null) 'created_by': createdBy,
       if (modifiedBy != null) 'modified_by': modifiedBy,
-      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
-      if (modifiedAt != null) 'modified_at': modifiedAt!.toIso8601String(),
+      if (createdAt != null) 'created_at': createdAt!,
+      if (modifiedAt != null) 'modified_at': modifiedAt!,
     };
   }
 
-  /// Checks if user is currently checked in
   bool get isCheckedIn => checkinTime != null && checkoutTime == null;
 
-  /// Checks if attendance is complete (both check-in and check-out done)
   bool get isComplete => checkinTime != null && checkoutTime != null;
 
-  /// Calculates working duration
   Duration get workingDuration {
     if (checkinTime == null) return Duration.zero;
     
@@ -132,7 +124,6 @@ class AttendanceModel extends Equatable {
     return duration.isNegative ? Duration.zero : duration;
   }
 
-  /// Formats working duration as hours and minutes
   String get formattedDuration {
     final duration = workingDuration;
     final hours = duration.inHours;
@@ -170,7 +161,6 @@ class AttendanceModel extends Equatable {
         ')';
   }
 
-  // ───────────────── HELPER METHODS ─────────────────
 
   static DateTime? _parseDateTime(dynamic value) {
     if (value == null) return null;

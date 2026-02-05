@@ -29,24 +29,20 @@ class DashboardMobileView extends StatelessWidget {
     );
   }
 
-  // ───────────────── STATE LISTENER ─────────────────
 
   void _handleStateChanges(BuildContext context, DashboardState state) {
-    // Handle errors
     if (state.loadingStatus == DashboardLoadingStatus.failure &&
         state.errorMessage != null) {
       _showErrorSnackbar(context, state.errorMessage!);
       return;
     }
 
-    // Handle successful operations
     if (state.loadingStatus == DashboardLoadingStatus.success) {
       _handleSuccessStates(context, state);
     }
   }
 
   void _handleSuccessStates(BuildContext context, DashboardState state) {
-    // Check-in success
     if (state.checkInStatus == CheckInStatus.checkedIn &&
         state.checkOutTime == null &&
         state.checkInTime != null) {
@@ -56,7 +52,6 @@ class DashboardMobileView extends StatelessWidget {
       );
     }
 
-    // Check-out success
     if (state.checkOutTime != null &&
         state.checkInStatus == CheckInStatus.notCheckedIn) {
       _showInfoSnackbar(
@@ -66,7 +61,6 @@ class DashboardMobileView extends StatelessWidget {
     }
   }
 
-  // ───────────────── BODY ─────────────────
 
   Widget _buildBody(BuildContext context, DashboardState state) {
     return Column(
@@ -107,7 +101,6 @@ class DashboardMobileView extends StatelessWidget {
     );
   }
 
-  // ───────────────── HEADER ─────────────────
 
   Widget _buildHeader(BuildContext context, DashboardState state) {
     return Container(
@@ -136,7 +129,6 @@ class DashboardMobileView extends StatelessWidget {
     );
   }
 
-  // ───────────────── HELPERS ─────────────────
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -150,7 +142,6 @@ class DashboardMobileView extends StatelessWidget {
         '${time.minute.toString().padLeft(2, '0')}';
   }
 
-  // ───────────────── SNACKBARS ─────────────────
 
   void _showSuccessSnackbar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -209,9 +200,6 @@ class DashboardMobileView extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// CHECK-IN CARD WIDGET
-// ═══════════════════════════════════════════════════════════
 
 class _CheckInCard extends StatelessWidget {
   final DashboardState state;
@@ -260,7 +248,6 @@ class _CheckInCard extends StatelessWidget {
             ],
           ),
 
-          // Working Time Display
           if (state.elapsedTime.inSeconds > 0) ...[
             const SizedBox(height: 16),
             Container(
@@ -296,7 +283,6 @@ class _CheckInCard extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Action Buttons
           if (state.checkInStatus == CheckInStatus.notCheckedIn)
             _CheckInButton(
               isLoading: isLoading,
@@ -331,9 +317,7 @@ class _CheckInCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// TIME CARD WIDGET
-// ═══════════════════════════════════════════════════════════
+
 
 class _TimeCard extends StatelessWidget {
   final IconData icon;
@@ -387,9 +371,7 @@ class _TimeCard extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// CHECK-IN BUTTON
-// ═══════════════════════════════════════════════════════════
+
 
 class _CheckInButton extends StatelessWidget {
   final bool isLoading;
@@ -441,9 +423,7 @@ class _CheckInButton extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// CHECK-OUT BUTTON
-// ═══════════════════════════════════════════════════════════
+
 
 class _CheckOutButton extends StatelessWidget {
   final bool isLoading;
@@ -495,9 +475,7 @@ class _CheckOutButton extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ATTENDANCE CALENDAR CARD
-// ═══════════════════════════════════════════════════════════
+
 
 class _AttendanceCalendarCard extends StatelessWidget {
   final Map<DateTime, AttendanceModel> attendanceMap;
@@ -579,7 +557,6 @@ class _AttendanceCalendarCard extends StatelessWidget {
   }
 
   void _showAttendanceDetails(BuildContext context, AttendanceModel attendance) {
-    // TODO: Implement attendance details dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

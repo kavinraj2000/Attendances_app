@@ -8,7 +8,6 @@ class CheckInModel {
   final String? checkinImage;
   final String? createdBy;
 
-  // --- Check-out fields ---
   final DateTime? checkoutTime;
   final double? checkoutLatitude;
   final double? checkoutLongitude;
@@ -30,7 +29,6 @@ class CheckInModel {
     this.modifiedBy,
   });
 
-  /// --------------- from JSON ---------------
   factory CheckInModel.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic> map =
         json.containsKey('data') ? json['data'] as Map<String, dynamic> : json;
@@ -55,7 +53,6 @@ class CheckInModel {
     );
   }
 
-  /// --------------- to JSON ---------------
   Map<String, dynamic> toJson() {
     return {
       'employee_id': employeeId,
@@ -73,7 +70,6 @@ class CheckInModel {
     };
   }
 
-  /// --------------- copyWith ---------------
   CheckInModel copyWith({
     int? employeeId,
     int? attendanceId,

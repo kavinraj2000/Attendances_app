@@ -1,4 +1,3 @@
-// dashboard_state.dart
 
 part of 'dashboard_bloc.dart';
 
@@ -13,9 +12,7 @@ class DashboardState extends Equatable {
   final DateTime? checkOutTime;
   final List<AttendanceModel> attendanceList;
   final String? errorMessage;
-  final int todaySessionsCount;
-  
-  // Calendar states
+  final int todaySessionsCount;  
   final DateTime focusedDay;
   final DateTime? selectedDay;
   final CalendarFormat calendarFormat;
@@ -48,18 +45,15 @@ class DashboardState extends Equatable {
     );
   }
 
-  /// Computed property: Can user check in?
   bool get canCheckIn => 
       checkInStatus == CheckInStatus.notCheckedIn &&
       loadingStatus != DashboardLoadingStatus.loading;
 
-  /// Computed property: Can user check out?
   bool get canCheckOut => 
       checkInStatus == CheckInStatus.checkedIn &&
       checkOutTime == null &&
       loadingStatus != DashboardLoadingStatus.loading;
 
-  /// Computed property: Elapsed working time
   Duration get elapsedTime {
     if (checkInTime == null) return Duration.zero;
     

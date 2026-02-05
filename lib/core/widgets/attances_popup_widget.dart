@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ─── Color Constants ───────────────────────────────────────────────────────
 
 const Color kPurpleHeader            = Color(0xFF5B5FC7);
 const Color kActiveCardBg            = Color(0xFF5B9CF5);
@@ -16,7 +15,6 @@ const Color kAbsentColor             = Color(0xFFE53935);
 const Color kPresentColor            = Color(0xFF43A047);
 const Color kCardBg                  = Color(0xFFF0F2F8);
 
-// ─── Enums & Models ────────────────────────────────────────────────────────
 
 enum AttendanceStatus { present, absent, halfDay, leave }
 

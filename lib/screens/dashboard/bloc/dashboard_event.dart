@@ -1,5 +1,3 @@
-// dashboard_event.dart
-
 part of 'dashboard_bloc.dart';
 
 abstract class DashboardEvent extends Equatable {
@@ -9,12 +7,10 @@ abstract class DashboardEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Initialize dashboard with attendance data
 class InitializeDashboard extends DashboardEvent {
   const InitializeDashboard();
 }
 
-/// Perform check-in operation
 class CheckIn extends DashboardEvent {
   const CheckIn();
 
@@ -29,7 +25,6 @@ class CheckOut extends DashboardEvent {
   String toString() => 'CheckOut()';
 }
 
-/// Refresh attendance data
 class RefreshDashboard extends DashboardEvent {
   const RefreshDashboard();
 
@@ -37,7 +32,6 @@ class RefreshDashboard extends DashboardEvent {
   String toString() => 'RefreshDashboard()';
 }
 
-/// Select a specific day in calendar
 class SelectDay extends DashboardEvent {
   final DateTime selectedDay;
   final DateTime focusedDay;
@@ -51,7 +45,6 @@ class SelectDay extends DashboardEvent {
   String toString() => 'SelectDay(selected: $selectedDay, focused: $focusedDay)';
 }
 
-/// Change calendar display format
 class ChangeCalendarFormat extends DashboardEvent {
   final CalendarFormat format;
 
@@ -64,7 +57,6 @@ class ChangeCalendarFormat extends DashboardEvent {
   String toString() => 'ChangeCalendarFormat($format)';
 }
 
-/// Change calendar page/month
 class ChangePage extends DashboardEvent {
   final DateTime focusedDay;
 

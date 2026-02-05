@@ -1,14 +1,10 @@
 import 'package:hrm/core/model/attances_model.dart';
 
 class AttendanceHelper {
-  // ───────────────────────── DATE HELPERS ─────────────────────────
 
   static DateTime midnight(DateTime date) =>
       DateTime(date.year, date.month, date.day);
 
-  // ───────────────────────── MAP BUILDER ─────────────────────────
-
-  /// Builds calendar map: Date -> AttendanceModel
   static Map<DateTime, AttendanceModel> buildAttendanceMap(
     List<AttendanceModel> attendanceList,
   ) {
@@ -16,22 +12,18 @@ class AttendanceHelper {
 
     for (final attendance in attendanceList) {
       final rawDate = attendance.attendanceDate;
-      if (rawDate == null) continue;
 
       try {
         final parsedDate = DateTime.parse(rawDate);
         map[midnight(parsedDate)] = attendance;
       } catch (_) {
-        // Skip invalid date formats safely
       }
     }
 
     return map;
   }
 
-  // ───────────────────────── POPUP DATA BUILDER ─────────────────────────
 
-  /// Builds structured data for attendance popup
   static Map<String, dynamic> buildSchedule(AttendanceModel attendance) {
     return {
       'date': attendance.attendanceDate,
@@ -43,7 +35,6 @@ class AttendanceHelper {
     };
   }
 
-  // ───────────────────────── STATUS CODE ─────────────────────────
 
   static int? getStatusCode(String? status) {
     if (status == null) return null;

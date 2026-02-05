@@ -1,27 +1,23 @@
 import 'dart:io';
-
 import 'package:dio/dio.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/helper/camara_helper.dart';
 import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/core/repo/api_repo.dart';
 import 'package:hrm/core/repo/localdb_repo.dart';
+import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/screens/login/repo/login_repo.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
 
 class DashboardRepository {
   DashboardRepository()
-      : dio = Dio(
-          BaseOptions(
-            baseUrl: Api.baseUrl,
-            connectTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
-          ),
-        ) {
+    : dio = Dio(
+        BaseOptions(
+          baseUrl: Api.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      ) {
     _setupInterceptors();
   }
 
@@ -29,10 +25,7 @@ class DashboardRepository {
   final Logger log = Logger();
   final LoginRepo loginRepo = LoginRepo();
   final LocalDBRepository attendanceDB = LocalDBRepository();
-  final ImagePicker picker = ImagePicker();
-  final CameraLockService _cameraLock = CameraLockService();
-
-  // ───────────────── SETUP ─────────────────
+  final pref = PreferencesRepository();
 
   void _setupInterceptors() {
     dio.interceptors.add(
@@ -58,76 +51,13 @@ class DashboardRepository {
     );
   }
 
-  // ───────────────── IMAGE CAPTURE ─────────────────
-
-  /// Captures and compresses an image from the front camera
-  Future<File?> captureImage() async {
-    if (!_cameraLock.tryLock()) {
-      log.w('Camera already in use');
-      throw Exception('Camera is currently in use');
-    }
-
-    try {
-      final XFile? file = await picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.front,
-        imageQuality: 80,
-      );
-
-      if (file == null) {
-        log.i('User cancelled image capture');
-        return null;
-      }
-
-      return await _compressImage(file);
-    } catch (e) {
-      log.e('Failed to capture image', error: e);
-      rethrow;
-    } finally {
-      // Small delay to ensure camera resources are released
-      await Future.delayed(const Duration(milliseconds: 500));
-      _cameraLock.release();
-    }
-  }
-
-  /// Compresses image to reduce file size
-  Future<File?> _compressImage(XFile file) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final targetPath = '${tempDir.path}/attendance_$timestamp.jpg';
-
-      final compressed = await FlutterImageCompress.compressAndGetFile(
-        file.path,
-        targetPath,
-        quality: 65,
-        format: CompressFormat.jpeg,
-      );
-
-      if (compressed == null) {
-        log.w('Image compression failed');
-        return File(file.path);
-      }
-
-      return File(compressed.path);
-    } catch (e) {
-      log.e('Failed to compress image', error: e);
-      // Return original file if compression fails
-      return File(file.path);
-    }
-  }
-
-  // ───────────────── CHECK IN ─────────────────
-
-  /// Performs check-in operation
   Future<AttendanceModel> checkIn({
     required double lat,
     required double lng,
     String? imageName,
   }) async {
-    // Validate user session
-    final user = await loginRepo.getUserData();
-    final id = await loginRepo.getEmployeeId();
+    final user = await pref.getUserData();
+    final id = await pref.getEmployeeId();
 
     if (user == null || id == null) {
       throw Exception('User session expired. Please login again');
@@ -139,7 +69,7 @@ class DashboardRepository {
       "requestname": "Employee Check In",
       "data": {
         "employee_id": id,
-        "checkin_time": now.toIso8601String(),
+        "checkin_time": now,
         "checkin_latitude": lat,
         "checkin_longitude": lng,
         "checkin_image": imageName ?? '',
@@ -168,17 +98,15 @@ class DashboardRepository {
           checkinLongitude: lng,
           checkinImage: imageName,
         );
-
-        // Save to local database
         await _saveToLocalDB(attendance);
-        
+
         return attendance;
       }
 
-      // Handle error response
-      final errorMessage = response.data?['message'] ?? 
-                          response.data?['error'] ?? 
-                          'Check-in failed';
+      final errorMessage =
+          response.data?['message'] ??
+          response.data?['error'] ??
+          'Check-in failed';
       throw Exception(errorMessage);
     } on DioException catch (e) {
       log.e('Check-in API error', error: e);
@@ -189,16 +117,12 @@ class DashboardRepository {
     }
   }
 
-  // ───────────────── CHECK OUT ─────────────────
-
-  /// Performs check-out operation
   Future<void> checkOut({
     required double lat,
     required double lng,
     File? image,
   }) async {
-    // Validate user session
-    final user = await loginRepo.getUserData();
+    final user = await pref.getUserData();
     if (user == null || user.employeeId == null) {
       throw Exception('User session expired. Please login again');
     }
@@ -206,9 +130,8 @@ class DashboardRepository {
     final now = DateTime.now();
 
     try {
-      // Prepare form data
       final formData = FormData.fromMap({
-        "requestname": "Employee Check Out",
+        "requestname": "Employee Check In",
         "employee_id": user.employeeId,
         "checkout_time": DateFormat('HH:mm:ss').format(now),
         "checkout_latitude": lat,
@@ -216,7 +139,6 @@ class DashboardRepository {
         "modified_by": user.username,
       });
 
-      // Add image if available
       if (image != null) {
         formData.files.add(
           MapEntry(
@@ -241,13 +163,13 @@ class DashboardRepository {
       log.i('Check-out response: ${response.statusCode}');
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        final errorMessage = response.data?['message'] ?? 
-                            response.data?['error'] ?? 
-                            'Check-out failed';
+        final errorMessage =
+            response.data?['message'] ??
+            response.data?['error'] ??
+            'Check-out failed';
         throw Exception(errorMessage);
       }
 
-      // Update local database
       await _updateLocalDBCheckout(user.employeeId.toString(), now);
     } on DioException catch (e) {
       log.e('Check-out API error', error: e);
@@ -258,11 +180,8 @@ class DashboardRepository {
     }
   }
 
-  // ───────────────── ATTENDANCE DATA ─────────────────
-
-  /// Retrieves all attendance records for the current user
   Future<List<AttendanceModel>> getAllAttendanceData() async {
-    final user = await loginRepo.getUserData();
+    final user = await pref.getUserData();
     if (user == null || user.employeeId == null) {
       log.w('User not logged in');
       return [];
@@ -303,11 +222,10 @@ class DashboardRepository {
     }
   }
 
-  /// Retrieves attendance record for a specific date
   Future<AttendanceModel?> getAttendanceDataByDate({
     required DateTime date,
   }) async {
-    final user = await loginRepo.getUserData();
+    final user = await pref.getUserData();
     if (user == null || user.employeeId == null) {
       log.w('User not logged in');
       return null;
@@ -353,25 +271,23 @@ class DashboardRepository {
     }
   }
 
-  // ───────────────── LOCAL DATABASE ─────────────────
-
-  /// Saves attendance record to local database
   Future<void> _saveToLocalDB(AttendanceModel attendance) async {
     try {
       await attendanceDB.save(attendance);
       log.i('Saved attendance to local database');
     } catch (e) {
       log.e('Failed to save to local database', error: e);
-      // Don't throw - local save failure shouldn't fail the check-in
     }
   }
 
-  /// Updates checkout time in local database
-  Future<void> _updateLocalDBCheckout(String employeeId, DateTime checkoutTime) async {
+  Future<void> _updateLocalDBCheckout(
+    String employeeId,
+    DateTime checkoutTime,
+  ) async {
     try {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final attendance = await attendanceDB.getByDate(employeeId, today);
-      
+
       if (attendance != null) {
         final updated = attendance.copyWith(checkoutTime: checkoutTime);
         await attendanceDB.update(updated);
@@ -379,13 +295,9 @@ class DashboardRepository {
       }
     } catch (e) {
       log.e('Failed to update local database', error: e);
-      // Don't throw - local update failure shouldn't fail the check-out
     }
   }
 
-  // ───────────────── ERROR HANDLING ─────────────────
-
-  /// Converts Dio errors to user-friendly exceptions
   Exception _handleDioError(DioException error, String defaultMessage) {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
@@ -397,20 +309,13 @@ class DashboardRepository {
     }
 
     if (error.response?.data != null) {
-      final message = error.response!.data['message'] ?? 
-                     error.response!.data['error'];
+      final message =
+          error.response!.data['message'] ?? error.response!.data['error'];
       if (message != null) {
         return Exception(message);
       }
     }
 
     return Exception(defaultMessage);
-  }
-
-  // ───────────────── CLEANUP ─────────────────
-
-  /// Disposes resources
-  void dispose() {
-    dio.close();
   }
 }

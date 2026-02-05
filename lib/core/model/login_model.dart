@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-
 class LoginModel {
   final String? status;
   final String? message;
@@ -57,7 +54,7 @@ class LoginData {
   final int userId;
   final List<String> userRole;
   final String username;
-  final String? emailId; // ✅ ADD THIS
+  final String? emailId; 
 
   LoginData({
     required this.accessToken,
@@ -80,7 +77,7 @@ class LoginData {
       userRole:
           (json['userrole'] as List).map((e) => e.toString()).toList(),
       username: json['username'],
-      emailId: json['email_id'], // ✅ API FIELD
+      emailId: json['email_id'], 
     );
   }
 
@@ -98,9 +95,7 @@ class LoginData {
   }
 }
 
-/// ─────────────────────────────────────────────────────────────
-/// RESPONDER INFO
-/// ─────────────────────────────────────────────────────────────
+
 class Responder {
   final String name;
   final String version;

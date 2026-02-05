@@ -14,7 +14,6 @@ class LocalDBRepository {
   factory LocalDBRepository() => _instance;
   LocalDBRepository._internal();
 
-  // ───────────────── DB INIT ─────────────────
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB();
@@ -32,7 +31,6 @@ class LocalDBRepository {
     );
   }
 
-  // ───────────────── CREATE ─────────────────
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE users(
@@ -78,7 +76,6 @@ class LocalDBRepository {
     log.i('✅ Database created');
   }
 
-  // ───────────────── MIGRATION ─────────────────
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     log.i('⬆️ DB upgrade $oldVersion → $newVersion');
 
@@ -116,9 +113,6 @@ class LocalDBRepository {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // USER METHODS
-  // ═══════════════════════════════════════════════════════════
 
   Future<int> saveUser(LoginData loginData) async {
     final db = await database;
@@ -174,7 +168,6 @@ class LocalDBRepository {
     return count;
   }
 
-  // ───────────────── TOKEN ─────────────────
 
   Future<void> updateAccessToken(String token) async {
     final db = await database;
@@ -194,7 +187,6 @@ class LocalDBRepository {
     return user?.accessToken;
   }
 
-  // ───────────────── USER HELPERS ─────────────────
 
   Future<int?> getEmployeeId() async {
     final user = await getUser();
@@ -211,11 +203,7 @@ class LocalDBRepository {
     return user?.companyId;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // ATTENDANCE METHODS
-  // ═══════════════════════════════════════════════════════════
 
-  /// Save attendance record (insert or replace)
   Future<int> save(AttendanceModel model) async {
     try {
       final db = await database;
@@ -238,7 +226,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Update existing attendance record
   Future<int> update(AttendanceModel attendance) async {
     try {
       final db = await database;
@@ -261,7 +248,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Get attendance record by employee ID and date
   Future<AttendanceModel?> getByDate(String employeeId, String date) async {
     try {
       final db = await database;
@@ -281,13 +267,11 @@ class LocalDBRepository {
     }
   }
 
-  /// Get today's attendance for an employee
   Future<AttendanceModel?> getToday(int employeeId) async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     return getByDate(employeeId.toString(), today);
   }
 
-  /// Get active session (checked in but not checked out)
   Future<AttendanceModel?> getActiveSession(int employeeId) async {
     try {
       final db = await database;
@@ -309,7 +293,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Get all attendance records for an employee
   Future<List<AttendanceModel>> getAllByEmployeeId(String employeeId) async {
     try {
       final db = await database;
@@ -328,7 +311,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Get attendance records for a date range
   Future<List<AttendanceModel>> getByDateRange({
     required String employeeId,
     required DateTime startDate,
@@ -354,7 +336,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Get attendance count for current month
   Future<int> getMonthlyAttendanceCount(int employeeId) async {
     try {
       final db = await database;
@@ -378,7 +359,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Delete old attendance records (for cleanup)
   Future<int> deleteOlderThan(DateTime date) async {
     try {
       final db = await database;
@@ -390,7 +370,7 @@ class LocalDBRepository {
         whereArgs: [dateStr],
       );
 
-      log.i('🧹 Deleted $count old attendance records');
+      log.i(' Deleted $count old attendance records');
       return count;
     } catch (e) {
       log.e('Failed to delete old records', error: e);
@@ -398,7 +378,6 @@ class LocalDBRepository {
     }
   }
 
-  /// Delete attendance record by ID
   Future<int> deleteAttendance(int id) async {
     try {
       final db = await database;
@@ -408,7 +387,7 @@ class LocalDBRepository {
         whereArgs: [id],
       );
       
-      log.i('🗑️ Deleted attendance record (id=$id)');
+      log.i(' Deleted attendance record (id=$id)');
       return count;
     } catch (e) {
       log.e('Failed to delete attendance', error: e);
@@ -416,21 +395,19 @@ class LocalDBRepository {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // CLEANUP METHODS
-  // ═══════════════════════════════════════════════════════════
+
 
   Future<void> clearAllData() async {
     final db = await database;
     await db.delete('users');
     await db.delete('attendance');
-    log.w('🧹 Local DB cleared');
+    log.w(' Local DB cleared');
   }
 
   Future<void> clearAttendanceData() async {
     final db = await database;
     await db.delete('attendance');
-    log.w('🧹 Attendance data cleared');
+    log.w(' Attendance data cleared');
   }
 
   Future<void> close() async {
@@ -441,7 +418,6 @@ class LocalDBRepository {
     }
   }
 
-  // ───────────────── NUCLEAR RESET ─────────────────
   Future<void> resetDatabase() async {
     final path = join(await getDatabasesPath(), 'hrm.db');
 
@@ -451,17 +427,13 @@ class LocalDBRepository {
     }
 
     await deleteDatabase(path);
-    log.w('🔥 DB deleted');
+    log.w(' DB deleted');
 
     _database = await _initDB();
-    log.i('✅ DB recreated');
+    log.i(' DB recreated');
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // UTILITY METHODS
-  // ═══════════════════════════════════════════════════════════
 
-  /// Get database statistics
   Future<Map<String, int>> getStats() async {
     try {
       final db = await database;
@@ -486,10 +458,8 @@ class LocalDBRepository {
     }
   }
 
-  /// Check if database is initialized
   bool get isInitialized => _database != null;
 
-  /// Get database path
   Future<String> getDatabasePath() async {
     return join(await getDatabasesPath(), 'hrm.db');
   }
