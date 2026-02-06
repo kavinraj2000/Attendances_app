@@ -1,21 +1,29 @@
 import 'package:equatable/equatable.dart';
 
 class AttendanceModel extends Equatable {
-  final String? id;
+  final int? id;
   final String employeeId;
   final String attendanceDate;
+
+  // Check-in
   final DateTime? checkinTime;
-  final DateTime? checkoutTime;
   final double? checkinLatitude;
   final double? checkinLongitude;
+  final String? checkinImage;
+
+  // Check-out
+  final DateTime? checkoutTime;
   final double? checkoutLatitude;
   final double? checkoutLongitude;
-  final String? checkinImage;
   final String? checkoutImage;
-  final String? createdBy;
-  final String? modifiedBy;
+
+  // Status
+  final String? attendanceStatus; // ✅ IMPORTANT
+  final String? status;
+
+  // Metadata
   final DateTime? createdAt;
-  final DateTime? modifiedAt;
+  final DateTime? updatedAt;
 
   const AttendanceModel({
     this.id,
@@ -29,14 +37,46 @@ class AttendanceModel extends Equatable {
     this.checkoutLongitude,
     this.checkinImage,
     this.checkoutImage,
-    this.createdBy,
-    this.modifiedBy,
+    this.attendanceStatus,
+    this.status,
     this.createdAt,
-    this.modifiedAt,
+    this.updatedAt,
   });
 
+  // ───────────────── BUSINESS LOGIC ─────────────────
+
+  /// JS-equivalent logic
+  bool get isActiveCheckIn {
+    if (checkinTime == null) return false;
+    if (checkoutTime != null) return false;
+    if (attendanceStatus == 'PENDING') return false;
+
+    final diffHours =
+        DateTime.now().difference(checkinTime!).inHours;
+
+    return diffHours <= 24;
+  }
+
+  bool get isComplete =>
+      checkinTime != null && checkoutTime != null;
+
+  Duration get workingDuration {
+    if (checkinTime == null) return Duration.zero;
+    final end = checkoutTime ?? DateTime.now();
+    return end.isAfter(checkinTime!)
+        ? end.difference(checkinTime!)
+        : Duration.zero;
+  }
+
+  String get formattedDuration {
+    final d = workingDuration;
+    return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
+  }
+
+  // ───────────────── COPY WITH ─────────────────
+
   AttendanceModel copyWith({
-    String? id,
+    int? id,
     String? employeeId,
     String? attendanceDate,
     DateTime? checkinTime,
@@ -47,10 +87,10 @@ class AttendanceModel extends Equatable {
     double? checkoutLongitude,
     String? checkinImage,
     String? checkoutImage,
-    String? createdBy,
-    String? modifiedBy,
+    String? attendanceStatus,
+    String? status,
     DateTime? createdAt,
-    DateTime? modifiedAt,
+    DateTime? updatedAt,
   }) {
     return AttendanceModel(
       id: id ?? this.id,
@@ -64,16 +104,18 @@ class AttendanceModel extends Equatable {
       checkoutLongitude: checkoutLongitude ?? this.checkoutLongitude,
       checkinImage: checkinImage ?? this.checkinImage,
       checkoutImage: checkoutImage ?? this.checkoutImage,
-      createdBy: createdBy ?? this.createdBy,
-      modifiedBy: modifiedBy ?? this.modifiedBy,
+      attendanceStatus: attendanceStatus ?? this.attendanceStatus,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
-      modifiedAt: modifiedAt ?? this.modifiedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
+  // ───────────────── JSON ─────────────────
+
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
-      id: json['id']?.toString(),
+      id: _parseInt(json['id']),
       employeeId: json['employee_id']?.toString() ?? '',
       attendanceDate: json['attendance_date']?.toString() ?? '',
       checkinTime: _parseDateTime(json['checkin_time']),
@@ -84,52 +126,61 @@ class AttendanceModel extends Equatable {
       checkoutLongitude: _parseDouble(json['checkout_longitude']),
       checkinImage: json['checkin_image']?.toString(),
       checkoutImage: json['checkout_image']?.toString(),
-      createdBy: json['created_by']?.toString(),
-      modifiedBy: json['modified_by']?.toString(),
+      attendanceStatus: json['attendance_status']?.toString(), // ✅ FIX
+      status: json['status']?.toString(),
       createdAt: _parseDateTime(json['created_at']),
-      modifiedAt: _parseDateTime(json['modified_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'employee_id': employeeId,
-      'attendance_date': attendanceDate,
-      if (checkinTime != null) 'checkin_time': checkinTime!,
-      if (checkoutTime != null) 'checkout_time': checkoutTime!,
-      if (checkinLatitude != null) 'checkin_latitude': checkinLatitude,
-      if (checkinLongitude != null) 'checkin_longitude': checkinLongitude,
-      if (checkoutLatitude != null) 'checkout_latitude': checkoutLatitude,
-      if (checkoutLongitude != null) 'checkout_longitude': checkoutLongitude,
-      if (checkinImage != null) 'checkin_image': checkinImage,
-      if (checkoutImage != null) 'checkout_image': checkoutImage,
-      if (createdBy != null) 'created_by': createdBy,
-      if (modifiedBy != null) 'modified_by': modifiedBy,
-      if (createdAt != null) 'created_at': createdAt!,
-      if (modifiedAt != null) 'modified_at': modifiedAt!,
-    };
+Map<String, dynamic> toJson() {
+  return {
+    'id': id,
+    'employee_id': employeeId,
+    'attendance_date': attendanceDate,
+
+    // Check-in
+    'checkin_time': checkinTime?.toIso8601String(),
+    'checkin_latitude': checkinLatitude,
+    'checkin_longitude': checkinLongitude,
+    'checkin_image': checkinImage,
+
+    // Check-out
+    'checkout_time': checkoutTime?.toIso8601String(),
+    'checkout_latitude': checkoutLatitude,
+    'checkout_longitude': checkoutLongitude,
+    'checkout_image': checkoutImage,
+
+    // Status
+    'attendance_status': attendanceStatus,
+    'status': status,
+
+    // Metadata
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
+}
+
+  static DateTime? _parseDateTime(dynamic v) {
+    try {
+      if (v == null) return null;
+      return DateTime.parse(v.toString());
+    } catch (_) {
+      return null;
+    }
   }
 
-  bool get isCheckedIn => checkinTime != null && checkoutTime == null;
-
-  bool get isComplete => checkinTime != null && checkoutTime != null;
-
-  Duration get workingDuration {
-    if (checkinTime == null) return Duration.zero;
-    
-    final endTime = checkoutTime ?? DateTime.now();
-    final duration = endTime.difference(checkinTime!);
-    
-    return duration.isNegative ? Duration.zero : duration;
+  static double? _parseDouble(dynamic v) {
+    if (v == null) return null;
+    return double.tryParse(v.toString());
   }
 
-  String get formattedDuration {
-    final duration = workingDuration;
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    return '${hours}h ${minutes}m';
+  static int? _parseInt(dynamic v) {
+    if (v == null) return null;
+    return int.tryParse(v.toString());
   }
+
+  // ───────────────── EQUATABLE ─────────────────
 
   @override
   List<Object?> get props => [
@@ -138,50 +189,7 @@ class AttendanceModel extends Equatable {
         attendanceDate,
         checkinTime,
         checkoutTime,
-        checkinLatitude,
-        checkinLongitude,
-        checkoutLatitude,
-        checkoutLongitude,
-        checkinImage,
-        checkoutImage,
-        createdBy,
-        modifiedBy,
-        createdAt,
-        modifiedAt,
+        attendanceStatus,
+        status,
       ];
-
-  @override
-  String toString() {
-    return 'AttendanceModel('
-        'id: $id, '
-        'employeeId: $employeeId, '
-        'date: $attendanceDate, '
-        'checkin: $checkinTime, '
-        'checkout: $checkoutTime'
-        ')';
-  }
-
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    
-    try {
-      return DateTime.parse(value.toString());
-    } catch (e) {
-      return null;
-    }
-  }
-
-  static double? _parseDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    
-    try {
-      return double.parse(value.toString());
-    } catch (e) {
-      return null;
-    }
-  }
 }

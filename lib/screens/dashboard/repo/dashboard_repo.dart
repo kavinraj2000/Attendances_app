@@ -11,13 +11,13 @@ import 'package:logger/logger.dart';
 
 class DashboardRepository {
   DashboardRepository()
-    : dio = Dio(
-        BaseOptions(
-          baseUrl: Api.baseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
-        ),
-      ) {
+      : dio = Dio(
+          BaseOptions(
+            baseUrl: Api.baseUrl,
+            connectTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        ) {
     _setupInterceptors();
   }
 
@@ -26,6 +26,8 @@ class DashboardRepository {
   final LoginRepo loginRepo = LoginRepo();
   final LocalDBRepository attendanceDB = LocalDBRepository();
   final pref = PreferencesRepository();
+
+  // ───────────────── SETUP ─────────────────
 
   void _setupInterceptors() {
     dio.interceptors.add(
@@ -51,6 +53,8 @@ class DashboardRepository {
     );
   }
 
+  // ───────────────── CHECK IN ─────────────────
+
   Future<AttendanceModel> checkIn({
     required double lat,
     required double lng,
@@ -69,7 +73,7 @@ class DashboardRepository {
       "requestname": "Employee Check In",
       "data": {
         "employee_id": id,
-        "checkin_time": now,
+        "checkin_time": now.toIso8601String(),
         "checkin_latitude": lat,
         "checkin_longitude": lng,
         "checkin_image": imageName ?? '',
@@ -88,6 +92,7 @@ class DashboardRepository {
       );
 
       log.i('Check-in response: ${response.statusCode}');
+      log.d('Check-in response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final attendance = AttendanceModel(
@@ -98,13 +103,12 @@ class DashboardRepository {
           checkinLongitude: lng,
           checkinImage: imageName,
         );
-        await _saveToLocalDB(attendance);
 
+      
         return attendance;
       }
 
-      final errorMessage =
-          response.data?['message'] ??
+      final errorMessage = response.data?['message'] ??
           response.data?['error'] ??
           'Check-in failed';
       throw Exception(errorMessage);
@@ -117,6 +121,7 @@ class DashboardRepository {
     }
   }
 
+
   Future<void> checkOut({
     required double lat,
     required double lng,
@@ -128,49 +133,48 @@ class DashboardRepository {
     }
 
     final now = DateTime.now();
+    
+    // Extract filename from image if available
+    String? imageName;
+    if (image != null) {
+      imageName = image.path.split('/').last;
+    }
 
     try {
-      final formData = FormData.fromMap({
-        "requestname": "Employee Check In",
-        "employee_id": user.employeeId,
-        "checkout_time": DateFormat('HH:mm:ss').format(now),
-        "checkout_latitude": lat,
-        "checkout_longitude": lng,
-        "modified_by": user.username,
-      });
+      final payload = {
+        "requestname": "Employee Check In", // Note: API uses same name for both
+        "data": {
+          "employee_id": user.employeeId,
+          "checkout_time": now.toIso8601String(),
+          "checkout_latitude": lat,
+          "checkout_longitude": lng,
+          "checkout_image": imageName ?? '',
+          "modified_by": user.username ?? '',
+        },
+      };
 
-      if (image != null) {
-        formData.files.add(
-          MapEntry(
-            "checkout_image",
-            await MultipartFile.fromFile(
-              image.path,
-              filename: image.path.split('/').last,
-            ),
-          ),
-        );
-      }
+      log.d('Check-out payload: $payload');
 
       final response = await dio.post(
         Constants.api.checkOut,
-        data: formData,
+        data: payload,
         options: Options(
           validateStatus: (_) => true,
-          contentType: 'multipart/form-data',
+          contentType: Headers.jsonContentType, 
         ),
       );
 
       log.i('Check-out response: ${response.statusCode}');
+      log.d('Check-out response data: ${response.data}');
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        final errorMessage =
-            response.data?['message'] ??
+        final errorMessage = response.data?['message'] ??
             response.data?['error'] ??
             'Check-out failed';
         throw Exception(errorMessage);
       }
 
-      await _updateLocalDBCheckout(user.employeeId.toString(), now);
+   
     } on DioException catch (e) {
       log.e('Check-out API error', error: e);
       throw _handleDioError(e, 'Check-out failed');
@@ -179,6 +183,7 @@ class DashboardRepository {
       rethrow;
     }
   }
+
 
   Future<List<AttendanceModel>> getAllAttendanceData() async {
     final user = await pref.getUserData();
@@ -205,6 +210,7 @@ class DashboardRepository {
           contentType: Headers.jsonContentType,
         ),
       );
+      
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         log.w('Failed to fetch attendance data: ${response.statusCode}');
@@ -222,54 +228,63 @@ class DashboardRepository {
     }
   }
 
-  Future<AttendanceModel?> getAttendanceDataByDate({
-    required DateTime date,
-  }) async {
-    final user = await pref.getUserData();
-    if (user == null || user.employeeId == null) {
-      log.w('User not logged in');
-      return null;
-    }
+  Future<AttendanceModel?> getActiveAttendanceSession() async {
+  final user = await pref.getUserData();
+  if (user == null || user.employeeId == null) return null;
 
-    final payload = {
-      "requestname": "data_read",
-      "data": {
-        "tablename": "attendance_details",
-        "columns": [],
-        "where": {
-          "employee_id": user.employeeId.toString(),
-          "attendance_date": DateFormat('yyyy-MM-dd').format(date),
-        },
+  final payload = {
+    "requestname": "data_read",
+    "data": {
+      "tablename": "attendance_details",
+      "columns": [],
+      "where": {
+        "employee_id": user.employeeId.toString(),
       },
-    };
+    },
+  };
 
-    try {
-      final response = await dio.post(
-        Constants.api.getdata,
-        data: payload,
-        options: Options(
-          validateStatus: (_) => true,
-          contentType: Headers.jsonContentType,
-        ),
-      );
+  final response = await dio.post(
+    Constants.api.getdata,
+    data: payload,
+    options: Options(
+      validateStatus: (_) => true,
+      contentType: Headers.jsonContentType,
+    ),
+  );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        log.w('Failed to fetch attendance for date: ${response.statusCode}');
-        return null;
-      }
+  if (response.statusCode != 200 && response.statusCode != 201) return null;
 
-      final list = response.data['data'] as List<dynamic>?;
-      if (list == null || list.isEmpty) return null;
+  final list = response.data['data'] as List<dynamic>? ?? [];
+  final now = DateTime.now();
 
-      return AttendanceModel.fromJson(list.first);
-    } on DioException catch (e) {
-      log.e('Failed to fetch attendance by date', error: e);
-      return null;
-    } catch (e) {
-      log.e('Error parsing attendance data', error: e);
-      return null;
+  for (final e in list) {
+    final model = AttendanceModel.fromJson(e);
+
+    if (model.checkinTime == null) continue;
+    if (model.checkoutTime != null) continue;
+    if (model.attendanceStatus == 'PENDING') continue;
+
+    final diffHours = now.difference(model.checkinTime!).inHours;
+
+    if (diffHours <= 24) {
+      return model; // ✅ ACTIVE SESSION FOUND
     }
   }
+
+  return null;
+}
+
+Future<AttendanceModel?> getActiveAttendance() async {
+  final list = await getAllAttendanceData();
+
+  try {
+    return list.firstWhere(
+      (a) => a.isActiveCheckIn,
+    );
+  } catch (_) {
+    return null;
+  }
+}
 
   Future<void> _saveToLocalDB(AttendanceModel attendance) async {
     try {
@@ -277,6 +292,7 @@ class DashboardRepository {
       log.i('Saved attendance to local database');
     } catch (e) {
       log.e('Failed to save to local database', error: e);
+      // Don't throw - local save failure shouldn't fail the check-in
     }
   }
 
@@ -295,8 +311,11 @@ class DashboardRepository {
       }
     } catch (e) {
       log.e('Failed to update local database', error: e);
+      // Don't throw - local update failure shouldn't fail the check-out
     }
   }
+
+  // ───────────────── ERROR HANDLING ─────────────────
 
   Exception _handleDioError(DioException error, String defaultMessage) {
     if (error.type == DioExceptionType.connectionTimeout ||
@@ -309,13 +328,19 @@ class DashboardRepository {
     }
 
     if (error.response?.data != null) {
-      final message =
-          error.response!.data['message'] ?? error.response!.data['error'];
+      final message = error.response!.data['message'] ?? 
+                     error.response!.data['error'];
       if (message != null) {
         return Exception(message);
       }
     }
 
     return Exception(defaultMessage);
+  }
+
+  // ───────────────── CLEANUP ─────────────────
+
+  void dispose() {
+    dio.close();
   }
 }

@@ -1,116 +1,69 @@
-
 part of 'dashboard_bloc.dart';
 
 enum DashboardLoadingStatus { initial, loading, success, failure }
 
-enum CheckInStatus { notCheckedIn, checkedIn }
+enum CheckInStatus { checkedIn, notCheckedIn }
 
 class DashboardState extends Equatable {
   final DashboardLoadingStatus loadingStatus;
   final CheckInStatus checkInStatus;
   final DateTime? checkInTime;
   final DateTime? checkOutTime;
-  final List<AttendanceModel> attendanceList;
   final String? errorMessage;
-  final int todaySessionsCount;  
-  final DateTime focusedDay;
-  final DateTime? selectedDay;
-  final CalendarFormat calendarFormat;
+  final List<AttendanceModel>? attendanceList;
 
   const DashboardState({
     required this.loadingStatus,
     required this.checkInStatus,
     this.checkInTime,
     this.checkOutTime,
-    required this.attendanceList,
     this.errorMessage,
-    required this.todaySessionsCount,
-    required this.focusedDay,
-    this.selectedDay,
-    required this.calendarFormat,
+    this.attendanceList,
   });
 
   factory DashboardState.initial() {
-    return DashboardState(
+    return const DashboardState(
       loadingStatus: DashboardLoadingStatus.initial,
       checkInStatus: CheckInStatus.notCheckedIn,
       checkInTime: null,
       checkOutTime: null,
-      attendanceList: const [],
       errorMessage: null,
-      todaySessionsCount: 0,
-      focusedDay: DateTime.now(),
-      selectedDay: DateTime.now(),
-      calendarFormat: CalendarFormat.month,
+      attendanceList: [],
     );
   }
 
-  bool get canCheckIn => 
-      checkInStatus == CheckInStatus.notCheckedIn &&
-      loadingStatus != DashboardLoadingStatus.loading;
-
-  bool get canCheckOut => 
-      checkInStatus == CheckInStatus.checkedIn &&
-      checkOutTime == null &&
-      loadingStatus != DashboardLoadingStatus.loading;
-
-  Duration get elapsedTime {
-    if (checkInTime == null) return Duration.zero;
-    
-    final endTime = checkOutTime ?? DateTime.now();
-    final elapsed = endTime.difference(checkInTime!);
-    
-    return elapsed.isNegative ? Duration.zero : elapsed;
-  }
+  bool get canCheckIn => checkInStatus == CheckInStatus.notCheckedIn;
+  bool get canCheckOut => checkInStatus == CheckInStatus.checkedIn;
 
   DashboardState copyWith({
     DashboardLoadingStatus? loadingStatus,
     CheckInStatus? checkInStatus,
     DateTime? checkInTime,
+    bool clearCheckInTime = false,
     DateTime? checkOutTime,
-    List<AttendanceModel>? attendanceList,
+    bool clearCheckOutTime = false,
     String? errorMessage,
-    int? todaySessionsCount,
-    DateTime? focusedDay,
-    DateTime? selectedDay,
-    CalendarFormat? calendarFormat,
+    bool clearError = false,
+    List<AttendanceModel>? attendanceList,
   }) {
     return DashboardState(
       loadingStatus: loadingStatus ?? this.loadingStatus,
       checkInStatus: checkInStatus ?? this.checkInStatus,
-      checkInTime: checkInTime ?? this.checkInTime,
-      checkOutTime: checkOutTime ?? this.checkOutTime,
+      checkInTime: clearCheckInTime ? null : (checkInTime ?? this.checkInTime),
+      checkOutTime: clearCheckOutTime
+          ? null
+          : (checkOutTime ?? this.checkOutTime),
+      errorMessage: clearError ? null : errorMessage,
       attendanceList: attendanceList ?? this.attendanceList,
-      errorMessage: errorMessage,
-      todaySessionsCount: todaySessionsCount ?? this.todaySessionsCount,
-      focusedDay: focusedDay ?? this.focusedDay,
-      selectedDay: selectedDay ?? this.selectedDay,
-      calendarFormat: calendarFormat ?? this.calendarFormat,
     );
   }
 
   @override
   List<Object?> get props => [
-        loadingStatus,
-        checkInStatus,
-        checkInTime,
-        checkOutTime,
-        attendanceList,
-        errorMessage,
-        todaySessionsCount,
-        focusedDay,
-        selectedDay,
-        calendarFormat,
-      ];
-
-  @override
-  String toString() {
-    return 'DashboardState('
-        'status: $loadingStatus, '
-        'checkIn: $checkInStatus, '
-        'checkInTime: $checkInTime, '
-        'checkOutTime: $checkOutTime, '
-        'sessions: $todaySessionsCount'
-        ')';
-  }
+    loadingStatus,
+    checkInStatus,
+    checkInTime,
+    checkOutTime,
+    errorMessage,
+  ];
 }

@@ -488,7 +488,6 @@ class _StatusCard extends StatelessWidget {
   };
 }
 
-// ─── Shared formatters ─────────────────────────────────────────────────────
 
 String _fmtTime(DateTime t) {
   final h = t.hour > 12 ? t.hour - 12 : (t.hour == 0 ? 12 : t.hour);
