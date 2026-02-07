@@ -1,7 +1,6 @@
 import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/constants/constants.dart';
 
-
 class RouteConstants {
   RouteConstants();
 
@@ -13,6 +12,15 @@ class RouteConstants {
     // '/notification',
   ];
 
+  // Routes where AppBar should be hidden
+  static const List<String> routesWithoutAppbar = [
+    RouteName.logs,
+    // Add more routes here that shouldn't show the AppBar
+    // RouteName.setting,
+    // RouteName.profile,
+    // '/custom-page',
+  ];
+
   static const List<String> routesWithoutStoryButton = [
     // '/search',
     // '/productdetail',
@@ -20,7 +28,7 @@ class RouteConstants {
     // '/joinUs',
   ];
 
-  static  List<Map<String, dynamic>> navbar = [
+  static List<Map<String, dynamic>> navbar = [
     {
       'index': 0,
       'path': RouteName.dashboard,
@@ -31,33 +39,21 @@ class RouteConstants {
       'index': 1,
       'path': RouteName.logs,
       'icon': Constants.icon.calander,
-      'label': 'logs',
+      'label': 'Logs',
     },
     {
       'index': 2,
       'path': RouteName.profile,
       'icon': Constants.icon.profile,
-      'label': 'Home',
+      'label': 'Profile',
       'isDefault': true,
     },
     {
       'index': 3,
       'path': RouteName.leave,
       'icon': Constants.icon.setting,
-      'label': 'Setting',
+      'label': 'Leave',
     },
-    // {
-    //   'index': 4,
-    //   'path': RouteName.setting,
-    //   // 'icon': IconConstants.category,
-    //   'label': 'Category',
-    // },
-    // {
-    //   'index': 5,
-    //   'path': RouteName.setting,
-    //   // 'icon': IconConstants.settings,
-    //   'label': 'Settings',
-    // },
   ];
 
   static List<String> get navigationRoutes {
@@ -78,6 +74,10 @@ class RouteConstants {
 
   static bool shouldShowNavBar(String currentRoute) {
     return !routesWithoutNavBar.any((route) => currentRoute.contains(route));
+  }
+
+  static bool shouldShowAppbar(String currentRoute) {
+    return !routesWithoutAppbar.any((route) => currentRoute.contains(route));
   }
 
   static bool shouldShowStoryButton(String currentRoute) {

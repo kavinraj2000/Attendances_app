@@ -1,73 +1,63 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/constants/route_constants.dart';
-
 
 class BottomNavBarWidget extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int>? onIndexChanged;
-  final VoidCallback? onHomeRefresh;
+  final int currentIndex;
+  final Function(int) onTap;
 
   const BottomNavBarWidget({
     super.key,
-    required this.selectedIndex,
-    this.onIndexChanged,
-    this.onHomeRefresh,
+    required this.currentIndex,
+    required this.onTap,
   });
 
-  List<Map<String, dynamic>> get _visibleNavItems {
-    return RouteConstants.navbarItems; // Fixed
-  }
-
-  Widget _navItem({
-    required Map<String, dynamic> item,
-    required Color unselectedColor,
-  }) {
-    final int index = item['index'] as int;
-    final String svgPath = item['svgPath'] ?? item['icon'] as String;
-    final String svgSelectedPath = item['svgSelectedPath'] ?? svgPath;
-    final String label = item['label'] as String;
-    
-    final isSelected = selectedIndex == index;
-    final iconSize = isSelected ? 24.0 : 22.0;
-
-    return Expanded(
-      child: InkWell( // Changed from GestureDetector for better tap feedback
-        onTap: () {
-          HapticFeedback.lightImpact();
-          
-          if (selectedIndex == index) {
-            if (index == RouteConstants.defaultHomeIndex && 
-                onHomeRefresh != null) {
-              onHomeRefresh!();
-            }
-            return;
-          }
-          onIndexChanged?.call(index);
-        },
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              SvgPicture.asset(
-                isSelected ? svgSelectedPath : svgPath,
-                width: iconSize,
-                height: iconSize,
-                colorFilter: isSelected 
-                  ? null 
-                  : ColorFilter.mode(unselectedColor, BlendMode.srcIn),
+              _buildNavItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home,
+                label: 'Home',
+                index: 0,
               ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: Constants.app.headerblack.copyWith(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? Colors.black : unselectedColor,
-                ),
+              _buildNavItem(
+                icon: Icons.people_outline,
+                activeIcon: Icons.people,
+                label: 'Attendance',
+                index: 1,
+              ),
+              _buildNavItem(
+                icon: Icons.insert_chart_outlined,
+                activeIcon: Icons.insert_chart,
+                label: 'Reports',
+                index: 2,
+              ),
+              _buildNavItem(
+                icon: Icons.notifications_outlined,
+                activeIcon: Icons.notifications,
+                label: 'Alerts',
+                index: 3,
+              ),
+              _buildNavItem(
+                icon: Icons.menu,
+                activeIcon: Icons.menu,
+                label: 'More',
+                index: 4,
               ),
             ],
           ),
@@ -76,32 +66,42 @@ class BottomNavBarWidget extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final unselectedColor = Colors.grey.shade500;
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+  }) {
+    final isActive = currentIndex == index;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, -1),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        top: 18,
-        bottom: MediaQuery.of(context).padding.bottom,
-      ),
-      child: Row(
-        children: _visibleNavItems.map((item) {
-          return _navItem(
-            item: item,
-            unselectedColor: unselectedColor,
-          );
-        }).toList(),
+    return InkWell(
+      onTap: () => onTap(index),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive
+                  ? const Color(0xFF667EEA)
+                  : const Color(0xFF9E9E9E),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive
+                    ? const Color(0xFF667EEA)
+                    : const Color(0xFF9E9E9E),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:hrm/core/repo/localdb_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:logger/logger.dart';
 
@@ -8,9 +7,7 @@ class Api {
   static Future<Map<String, String>> headers() async {
     final pref = PreferencesRepository();
     final token = await pref.getToken();
-
     Logger().d('AUTH TOKEN => $token');
-
     if (token == null || token.isEmpty) {
       throw Exception('Token missing');
     }

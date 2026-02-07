@@ -1,58 +1,31 @@
 import 'package:hrm/core/model/attances_model.dart';
-
-class AttendanceHelper {
-
-  static DateTime midnight(DateTime date) =>
-      DateTime(date.year, date.month, date.day);
-
-  static Map<DateTime, AttendanceModel> buildAttendanceMap(
-    List<AttendanceModel> attendanceList,
-  ) {
-    final map = <DateTime, AttendanceModel>{};
-
-    for (final attendance in attendanceList) {
-      final rawDate = attendance.attendanceDate;
-
-      try {
-        final parsedDate = DateTime.parse(rawDate);
-        map[midnight(parsedDate)] = attendance;
-      } catch (_) {
-      }
-    }
-
-    return map;
-  }
+import 'package:hrm/core/widgets/attances_popup_widget.dart';
 
 
-  static Map<String, dynamic> buildSchedule(AttendanceModel attendance) {
-    return {
-      'date': attendance.attendanceDate,
-      'checkInTime': attendance.checkinTime,
-      'checkOutTime': attendance.checkoutTime,
-      'workingHours': attendance.attendanceDate,
-      'status': attendance.attendanceDate,
-      'location': attendance.checkoutLatitude,
-    };
-  }
+AttendanceData convertToAttendanceData(
+  AttendanceModel model,
+  DateTime date,
+) {
+  return AttendanceData(
+    date: date,
+    checkInTime: model.checkinTime,
+    checkOutTime: model.checkoutTime,
+    status: _mapStatus(model.attendanceStatus),
+  );
+}
 
-
-  static int? getStatusCode(String? status) {
-    if (status == null) return null;
-
-    switch (status.toUpperCase()) {
-      case 'PRESENT':
-        return 1;
-      case 'ABSENT':
-        return 2;
-      case 'HALF_DAY':
-      case 'HALFDAY':
-        return 3;
-      case 'LEAVE':
-        return 4;
-      case 'HOLIDAY':
-        return 5;
-      default:
-        return null;
-    }
+AttendanceStatus _mapStatus(String? status) {
+  switch (status?.toUpperCase()) {
+    case 'PRESENT':
+      return AttendanceStatus.present;
+    case 'ABSENT':
+      return AttendanceStatus.absent;
+    case 'HALF_DAY':
+      return AttendanceStatus.halfDay;
+    case 'LEAVE':
+      return AttendanceStatus.leave;
+    default:
+      return AttendanceStatus.absent;
   }
 }
+

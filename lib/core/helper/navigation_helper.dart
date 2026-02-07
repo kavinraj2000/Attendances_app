@@ -122,12 +122,13 @@ class _NavigationHelperState extends State<NavigationHelper> {
     final shouldShowBottomNavBar = _controller.shouldShowBottomNavBar(
       widget.currentRoute,
     );
+    final shouldShowAppBar = _controller.shouldShowappbar(widget.currentRoute);
 
     return PopScope(
       canPop: false,
       onPopInvoked: _handlePopInvoked,
       child: Scaffold(
-        appBar: _isLoadingUserData
+        appBar: (_isLoadingUserData || !shouldShowAppBar)
             ? null
             : CustomAppBar(
                 userName: _userName,
@@ -149,9 +150,9 @@ class _NavigationHelperState extends State<NavigationHelper> {
         ),
         bottomNavigationBar: shouldShowBottomNavBar
             ? BottomNavBarWidget(
-                selectedIndex: selectedIndex,
-                onIndexChanged: _navigateToIndex,
-                onHomeRefresh: _handleHomeRefresh,
+                currentIndex: selectedIndex,
+                onTap: _navigateToIndex,
+                // : _handleHomeRefresh,
               )
             : null,
       ),
@@ -204,6 +205,9 @@ class MainShellController extends GetxController {
 
   bool shouldShowBottomNavBar(String route) =>
       RouteConstants.shouldShowNavBar(route);
+      
+  bool shouldShowappbar(String route) =>
+      RouteConstants.shouldShowAppbar(route);
 
   bool isHomeRoute(String route) {
     final index = getSelectedIndex(route);

@@ -7,64 +7,31 @@ abstract class DashboardEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class InitializeDashboard extends DashboardEvent {
-  const InitializeDashboard();
+class InitializeDashboard extends DashboardEvent {}
+
+class CheckIn extends DashboardEvent {}
+
+class CheckOut extends DashboardEvent {}
+
+// New calendar events
+class SelectDate extends DashboardEvent {
+  final DateTime date;
+
+  const SelectDate(this.date);
+
+  @override
+  List<Object?> get props => [date];
 }
 
-class CheckIn extends DashboardEvent {
-  const CheckIn();
+class UpdateCalendarMonth extends DashboardEvent {
+  final DateTime month;
+
+  const UpdateCalendarMonth(this.month);
 
   @override
-  String toString() => 'CheckIn()';
+  List<Object?> get props => [month];
 }
 
-class CheckOut extends DashboardEvent {
-  const CheckOut();
+class LoadDashboardData extends DashboardEvent {}
 
-  @override
-  String toString() => 'CheckOut()';
-}
-
-class RefreshDashboard extends DashboardEvent {
-  const RefreshDashboard();
-
-  @override
-  String toString() => 'RefreshDashboard()';
-}
-
-class SelectDay extends DashboardEvent {
-  final DateTime selectedDay;
-  final DateTime focusedDay;
-
-  const SelectDay(this.selectedDay, this.focusedDay);
-
-  @override
-  List<Object?> get props => [selectedDay, focusedDay];
-
-  @override
-  String toString() => 'SelectDay(selected: $selectedDay, focused: $focusedDay)';
-}
-
-class ChangeCalendarFormat extends DashboardEvent {
-  final CalendarFormat format;
-
-  const ChangeCalendarFormat(this.format);
-
-  @override
-  List<Object?> get props => [format];
-
-  @override
-  String toString() => 'ChangeCalendarFormat($format)';
-}
-
-class ChangePage extends DashboardEvent {
-  final DateTime focusedDay;
-
-  const ChangePage(this.focusedDay);
-
-  @override
-  List<Object?> get props => [focusedDay];
-
-  @override
-  String toString() => 'ChangePage($focusedDay)';
-}
+class RefreshDashboardData extends DashboardEvent {}

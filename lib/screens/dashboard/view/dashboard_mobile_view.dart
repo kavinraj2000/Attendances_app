@@ -1,667 +1,286 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:hrm/core/constants/constants.dart';
-// import 'package:hrm/core/helper/attendances_helper.dart';
-// import 'package:hrm/core/model/attances_model.dart';
-// import 'package:hrm/screens/dashboard/bloc/dashboard_bloc.dart';
-// import 'package:logger/logger.dart';
-// import 'package:table_calendar/table_calendar.dart';
-
-// class DashboardMobileView extends StatelessWidget {
-//   const DashboardMobileView({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Constants.color.lightColors['primary'],
-//       body: BlocConsumer<DashboardBloc, DashboardState>(
-//         listener: _handleStateChanges,
-//         builder: (context, state) {
-//           if (state.loadingStatus == DashboardLoadingStatus.loading &&
-//               state.attendanceList.isEmpty) {
-//             return const Center(child: CircularProgressIndicator());
-//           }
-
-//           return _buildBody(context, state);
-//         },
-//       ),
-//     );
-//   }
-
-//   void _handleStateChanges(BuildContext context, DashboardState state) {
-//     if (state.loadingStatus == DashboardLoadingStatus.failure &&
-//         state.errorMessage != null) {
-//       _showErrorSnackbar(context, state.errorMessage!);
-//       return;
-//     }
-
-//     if (state.loadingStatus == DashboardLoadingStatus.success) {
-//       _handleSuccessStates(context, state);
-//     }
-//   }
-
-//   void _handleSuccessStates(BuildContext context, DashboardState state) {
-//     if (state.checkInStatus == CheckInStatus.checkedIn &&
-//         state.checkOutTime == null &&
-//         state.checkInTime != null) {
-//       _showSuccessSnackbar(
-//         context,
-//         'Checked in successfully at ${_formatTime(state.checkInTime!)}',
-//       );
-//     }
-
-//     if (state.checkOutTime != null &&
-//         state.checkInStatus == CheckInStatus.notCheckedIn) {
-//       _showInfoSnackbar(
-//         context,
-//         'Checked out successfully at ${_formatTime(state.checkOutTime!)}',
-//       );
-//     }
-//   }
-
-//   Widget _buildBody(BuildContext context, DashboardState state) {
-//     return Column(
-//       children: [
-//         _buildHeader(context, state),
-//         Expanded(
-//           child: Container(
-//             decoration: const BoxDecoration(
-//               color: Colors.white,
-//               borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-//             ),
-//             child: RefreshIndicator(
-//               onRefresh: () async {
-//                 context.read<DashboardBloc>().add(RefreshDashboard());
-//                 await Future.delayed(const Duration(seconds: 1));
-//               },
-//               child: SingleChildScrollView(
-//                 physics: const AlwaysScrollableScrollPhysics(),
-//                 padding: const EdgeInsets.all(20),
-//                 child: Column(
-//                   children: [
-//                     _CheckInCard(state: state),
-//                     const SizedBox(height: 24),
-//                     _AttendanceCalendarCard(
-//                       attendanceMap: AttendanceHelper.buildAttendanceMap(
-//                         state.attendanceList,
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-
-//   Widget _buildHeader(BuildContext context, DashboardState state) {
-//     return Container(
-//       padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(
-//             'Attendance',
-//             style: TextStyle(
-//               fontSize: 28,
-//               fontWeight: FontWeight.bold,
-//               color: Colors.white,
-//             ),
-//           ),
-//           const SizedBox(height: 8),
-//           Text(
-//             _getGreeting(),
-//             style: TextStyle(
-//               fontSize: 16,
-//               color: Colors.white.withOpacity(0.9),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   String _getGreeting() {
-//     final hour = DateTime.now().hour;
-//     if (hour < 12) return 'Good Morning!';
-//     if (hour < 17) return 'Good Afternoon!';
-//     return 'Good Evening!';
-//   }
-
-//   String _formatTime(DateTime time) {
-//     return '${time.hour.toString().padLeft(2, '0')}:'
-//         '${time.minute.toString().padLeft(2, '0')}';
-//   }
-
-//   void _showSuccessSnackbar(BuildContext context, String message) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Row(
-//           children: [
-//             const Icon(Icons.check_circle, color: Colors.white),
-//             const SizedBox(width: 12),
-//             Expanded(child: Text(message)),
-//           ],
-//         ),
-//         backgroundColor: Colors.green,
-//         behavior: SnackBarBehavior.floating,
-//         duration: const Duration(seconds: 3),
-//       ),
-//     );
-//   }
-
-//   void _showInfoSnackbar(BuildContext context, String message) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Row(
-//           children: [
-//             const Icon(Icons.info, color: Colors.white),
-//             const SizedBox(width: 12),
-//             Expanded(child: Text(message)),
-//           ],
-//         ),
-//         backgroundColor: Colors.blue,
-//         behavior: SnackBarBehavior.floating,
-//         duration: const Duration(seconds: 3),
-//       ),
-//     );
-//   }
-
-//   void _showErrorSnackbar(BuildContext context, String message) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Row(
-//           children: [
-//             const Icon(Icons.error, color: Colors.white),
-//             const SizedBox(width: 12),
-//             Expanded(child: Text(message)),
-//           ],
-//         ),
-//         backgroundColor: Colors.red,
-//         behavior: SnackBarBehavior.floating,
-//         duration: const Duration(seconds: 4),
-//         action: SnackBarAction(
-//           label: 'Dismiss',
-//           textColor: Colors.white,
-//           onPressed: () {},
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// class _CheckInCard extends StatelessWidget {
-//   final DashboardState state;
-
-//   const _CheckInCard({required this.state});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final isLoading = state.loadingStatus == DashboardLoadingStatus.loading;
-
-//     return Container(
-//       padding: const EdgeInsets.all(20),
-//       decoration: BoxDecoration(
-//         borderRadius: BorderRadius.circular(16),
-//         color: Colors.white,
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.05),
-//             blurRadius: 10,
-//             offset: const Offset(0, 4),
-//           ),
-//         ],
-//       ),
-//       child: Column(
-//         children: [
-//           // Time Cards Row
-//           Row(
-//             children: [
-//               Expanded(
-//                 child: _TimeCard(
-//                   icon: Icons.login,
-//                   label: 'Check In',
-//                   time: _formatTime(state.checkInTime),
-//                   color: Colors.green,
-//                 ),
-//               ),
-//               const SizedBox(width: 12),
-//               Expanded(
-//                 child: _TimeCard(
-//                   icon: Icons.logout,
-//                   label: 'Check Out',
-//                   time: _formatTime(state.checkOutTime),
-//                   color: Colors.red,
-//                 ),
-//               ),
-//             ],
-//           ),
-
-//           if (state.elapsedTime.inSeconds > 0) ...[
-//             const SizedBox(height: 16),
-//             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//               decoration: BoxDecoration(
-//                 color: Colors.blue.withOpacity(0.1),
-//                 borderRadius: BorderRadius.circular(8),
-//               ),
-//               child: Row(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   const Icon(Icons.access_time, color: Colors.blue, size: 20),
-//                   const SizedBox(width: 8),
-//                   Text(
-//                     'Working Time: ${_formatDuration(state.elapsedTime)}',
-//                     style: const TextStyle(
-//                       fontSize: 16,
-//                       fontWeight: FontWeight.w600,
-//                       color: Colors.blue,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ],
-
-//           const SizedBox(height: 20),
-
-//           if (state.checkInStatus == CheckInStatus.notCheckedIn)
-//             _CheckInButton(
-             
-//               onPressed: () {
-//                 context.read<DashboardBloc>().add(CheckIn());
-//                 Logger().d(' checkin button ui::${state.canCheckIn}');
-//               },
-//             )
-//           else if (state.checkInStatus == CheckInStatus.checkedIn)
-//             _CheckOutButton(
-//               isLoading: isLoading,
-//               canCheckOut: state.canCheckOut,
-//               onPressed: () {
-//                 context.read<DashboardBloc>().add(CheckOut());
-//                 Logger().d('dashboard checkout ui::${state.canCheckOut}');
-//               },
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   String _formatTime(DateTime? time) {
-//     if (time == null) return '--:--';
-//     return '${time.hour.toString().padLeft(2, '0')}:'
-//         '${time.minute.toString().padLeft(2, '0')}';
-//   }
-
-//   String _formatDuration(Duration duration) {
-//     final hours = duration.inHours;
-//     final minutes = duration.inMinutes.remainder(60);
-//     return '${hours}h ${minutes}m';
-//   }
-// }
-
-// class _TimeCard extends StatelessWidget {
-//   final IconData icon;
-//   final String label;
-//   final String time;
-//   final Color color;
-
-//   const _TimeCard({
-//     required this.icon,
-//     required this.label,
-//     required this.time,
-//     required this.color,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       padding: const EdgeInsets.all(16),
-//       decoration: BoxDecoration(
-//         borderRadius: BorderRadius.circular(12),
-//         border: Border.all(color: color.withOpacity(0.2), width: 1.5),
-//         color: color.withOpacity(0.05),
-//       ),
-//       child: Column(
-//         children: [
-//           Icon(icon, color: color, size: 28),
-//           const SizedBox(height: 8),
-//           Text(
-//             label,
-//             style: TextStyle(
-//               fontSize: 12,
-//               color: Colors.grey[600],
-//               fontWeight: FontWeight.w500,
-//             ),
-//           ),
-//           const SizedBox(height: 4),
-//           Text(
-//             time,
-//             style: TextStyle(
-//               fontSize: 20,
-//               fontWeight: FontWeight.bold,
-//               color: color,
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-
-// class _CheckInButton extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return BlocBuilder<DashboardBloc, DashboardState>(
-//       builder: (context, state) {
-//         final isLoading = state.loadingStatus == DashboardLoadingStatus.loading;
-//         final workingTime = _getWorkingDuration(state);
-
-//         return Container(
-//           padding: const EdgeInsets.all(20),
-//           decoration: BoxDecoration(
-//             borderRadius: BorderRadius.circular(16),
-//             color: Colors.white,
-//             boxShadow: [
-//               BoxShadow(
-//                 color: Colors.black.withOpacity(0.05),
-//                 blurRadius: 10,
-//                 offset: const Offset(0, 4),
-//               ),
-//             ],
-//           ),
-//           child: Column(
-//             children: [
-//               // Swipe Button Row
-//               if (state.checkInStatus == CheckInStatus.notCheckedIn)
-//                 _SwipeActionButton(
-//                   label: 'Swipe to Check In',
-//                   color: Colors.green,
-//                   isLoading: isLoading,
-//                   onSwipe: () {
-//                     context.read<DashboardBloc>().add(CheckIn());
-//                     Logger().d('Swipe Check-in triggered');
-//                   },
-//                 )
-//               else if (state.checkInStatus == CheckInStatus.checkedIn)
-//                 _SwipeActionButton(
-//                   label: 'Swipe to Check Out',
-//                   color: Colors.red,
-//                   isLoading: isLoading,
-//                   onSwipe: () {
-//                     context.read<DashboardBloc>().add(CheckOut());
-//                     Logger().d('Swipe Check-out triggered');
-//                   },
-//                 ),
-
-//               if (workingTime.inSeconds > 0) ...[
-//                 const SizedBox(height: 16),
-//                 Container(
-//                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//                   decoration: BoxDecoration(
-//                     color: Colors.blue.withOpacity(0.1),
-//                     borderRadius: BorderRadius.circular(8),
-//                   ),
-//                   child: Row(
-//                     mainAxisAlignment: MainAxisAlignment.center,
-//                     children: [
-//                       const Icon(Icons.access_time, color: Colors.blue, size: 20),
-//                       const SizedBox(width: 8),
-//                       Text(
-//                         'Working Time: ${_formatDuration(workingTime)}',
-//                         style: const TextStyle(
-//                           fontSize: 16,
-//                           fontWeight: FontWeight.w600,
-//                           color: Colors.blue,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ],
-//           ),
-//         );
-//       },
-//     );
-//   }
-
-//   Duration _getWorkingDuration(DashboardState state) {
-//     if (state.checkInTime == null) return Duration.zero;
-//     if (state.checkOutTime != null) {
-//       return state.checkOutTime!.difference(state.checkInTime!);
-//     }
-//     return DateTime.now().difference(state.checkInTime!);
-//   }
-
-//   String _formatDuration(Duration duration) {
-//     final hours = duration.inHours;
-//     final minutes = duration.inMinutes.remainder(60);
-//     return '${hours}h ${minutes}m';
-//   }
-// }
-
-// // ================= SWIPE BUTTON =================
-
-// class _SwipeActionButton extends StatefulWidget {
-//   final String label;
-//   final Color color;
-//   final bool isLoading;
-//   final VoidCallback onSwipe;
-
-//   const _SwipeActionButton({
-//     required this.label,
-//     required this.color,
-//     required this.isLoading,
-//     required this.onSwipe,
-//   });
-
-//   @override
-//   State<_SwipeActionButton> createState() => _SwipeActionButtonState();
-// }
-
-// class _SwipeActionButtonState extends State<_SwipeActionButton> {
-//   double _dragPosition = 0;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return GestureDetector(
-//       onHorizontalDragUpdate: (details) {
-//         if (widget.isLoading) return;
-//         setState(() {
-//           _dragPosition += details.delta.dx;
-//           _dragPosition = _dragPosition.clamp(0.0, 300.0);
-//         });
-//       },
-//       onHorizontalDragEnd: (details) {
-//         if (_dragPosition > 150) {
-//           widget.onSwipe();
-//         }
-//         setState(() {
-//           _dragPosition = 0;
-//         });
-//       },
-//       child: Stack(
-//         children: [
-//           Container(
-//             height: 56,
-//             width: double.infinity,
-//             decoration: BoxDecoration(
-//               color: widget.color.withOpacity(0.2),
-//               borderRadius: BorderRadius.circular(12),
-//             ),
-//             alignment: Alignment.center,
-//             child: Text(
-//               widget.label,
-//               style: TextStyle(
-//                 color: widget.color,
-//                 fontWeight: FontWeight.bold,
-//                 fontSize: 16,
-//               ),
-//             ),
-//           ),
-//           Positioned(
-//             left: _dragPosition,
-//             child: Container(
-//               height: 56,
-//               width: 56,
-//               decoration: BoxDecoration(
-//                 color: widget.color,
-//                 borderRadius: BorderRadius.circular(12),
-//               ),
-//               alignment: Alignment.center,
-//               child: widget.isLoading
-//                   ? const SizedBox(
-//                       width: 20,
-//                       height: 20,
-//                       child: CircularProgressIndicator(
-//                         strokeWidth: 2,
-//                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-//                       ),
-//                     )
-//                   : const Icon(Icons.arrow_forward, color: Colors.white),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-
-// class _AttendanceCalendarCard extends StatelessWidget {
-//   final Map<DateTime, AttendanceModel> attendanceMap;
-
-//   const _AttendanceCalendarCard({required this.attendanceMap});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return BlocBuilder<DashboardBloc, DashboardState>(
-//       builder: (context, state) {
-//         return Container(
-//           padding: const EdgeInsets.all(20),
-//           decoration: BoxDecoration(
-//             borderRadius: BorderRadius.circular(16),
-//             color: Colors.white,
-//             boxShadow: [
-//               BoxShadow(
-//                 color: Colors.black.withOpacity(0.05),
-//                 blurRadius: 10,
-//                 offset: const Offset(0, 4),
-//               ),
-//             ],
-//           ),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               const Text(
-//                 'Attendance Calendar',
-//                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-//               ),
-//               const SizedBox(height: 16),
-//               TableCalendar(
-//                 firstDay: DateTime(2020),
-//                 lastDay: DateTime(2030),
-//                 focusedDay: state.focusedDay,
-//                 calendarFormat: state.calendarFormat,
-//                 selectedDayPredicate: (day) =>
-//                     isSameDay(state.selectedDay, day),
-//                 onDaySelected: (selectedDay, focusedDay) {
-//                   context.read<DashboardBloc>().add(
-//                     SelectDay(selectedDay, focusedDay),
-//                   );
-
-//                   final normalizedDay = AttendanceHelper.midnight(selectedDay);
-//                   final attendance = attendanceMap[normalizedDay];
-
-//                   if (attendance != null) {
-//                     _showAttendanceDetails(context, attendance);
-//                   }
-//                 },
-//                 onFormatChanged: (format) {
-//                   context.read<DashboardBloc>().add(
-//                     ChangeCalendarFormat(format),
-//                   );
-//                 },
-//                 onPageChanged: (focusedDay) {
-//                   context.read<DashboardBloc>().add(ChangePage(focusedDay));
-//                 },
-//                 calendarStyle: CalendarStyle(
-//                   todayDecoration: BoxDecoration(
-//                     color: Colors.blue.withOpacity(0.5),
-//                     shape: BoxShape.circle,
-//                   ),
-//                   selectedDecoration: const BoxDecoration(
-//                     color: Colors.blue,
-//                     shape: BoxShape.circle,
-//                   ),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         );
-//       },
-//     );
-//   }
-
-//   void _showAttendanceDetails(
-//     BuildContext context,
-//     AttendanceModel attendance,
-//   ) {
-//     showDialog(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text('Attendance Details'),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Text('Date: ${attendance.attendanceDate}'),
-//             if (attendance.checkinTime != null)
-//               Text('Check-in: ${attendance.checkinTime}'),
-//             if (attendance.checkoutTime != null)
-//               Text('Check-out: ${attendance.checkoutTime}'),
-//           ],
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(context),
-//             child: const Text('Close'),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hrm/core/widgets/card/check_in_card.dart';
+import 'package:hrm/core/services/image_capture_service.dart';
 import 'package:hrm/screens/dashboard/bloc/dashboard_bloc.dart';
+import 'package:intl/intl.dart';
 
-
-class DashboardMobileView extends StatelessWidget {
+class DashboardMobileView extends StatefulWidget {
   const DashboardMobileView({super.key});
+
+  @override
+  State<DashboardMobileView> createState() => _DashboardMobileViewState();
+}
+
+class _DashboardMobileViewState extends State<DashboardMobileView> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<DashboardBloc>().add(InitializeDashboard());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: BlocBuilder<DashboardBloc, DashboardState>(
-          builder: (context, state) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
+      backgroundColor: Colors.white,
+      body: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          if (state.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<DashboardBloc>().add(RefreshDashboardData());
+              await Future.delayed(const Duration(milliseconds: 500));
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
-                children: const [
-                  CheckInCard(),
+                children: [
+                  const SizedBox(height: 40),
+                  
+                  // Current Time Display
+                  _buildTimeDisplay(),
+                  
+                  const SizedBox(height: 60),
+                  
+                  // Check In/Out Button
+                  _buildCheckInButton(state),
+                  
+                  const SizedBox(height: 20),
+                  
+                  _buildLocationText(state),
+                  
+                  const SizedBox(height: 60),
+                  
+                  // _buildTimeCards(state),
+                  
+                  const SizedBox(height: 40),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  
+
+  Widget _buildTimeDisplay() {
+    return StreamBuilder(
+      stream: Stream.periodic(const Duration(seconds: 1)),
+      builder: (context, snapshot) {
+        final now = DateTime.now();
+        return Column(
+          children: [
+            Text(
+              DateFormat('HH:mm').format(now),
+              style: const TextStyle(
+                fontSize: 56,
+                fontWeight: FontWeight.w300,
+                color: Color(0xFF2C2C2C),
+                letterSpacing: -2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              DateFormat('EEEE, MMM dd').format(now),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF9E9E9E),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCheckInButton(DashboardState state) {
+    final isCheckedIn = state.checkInStatus == CheckInStatus.checkedIn;
+    final isLoading = state.loadingStatus == DashboardLoadingStatus.loading;
+
+    log.d('_buildCheckInButton:::$isLoading:::::::$isCheckedIn');
+
+    return GestureDetector(
+      onTap: isLoading
+          ? null
+          : () {
+              if (isCheckedIn) {
+                context.read<DashboardBloc>().add(CheckOut());
+              } else {
+                context.read<DashboardBloc>().add(CheckIn());
+              }
+            },
+      child: Container(
+        width: 180,
+        height: 180,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isCheckedIn
+                ? [
+                    const Color(0xFFFF6B6B),
+                    const Color(0xFFEE5A6F),
+                  ]
+                : [
+                    const Color(0xFF667EEA),
+                    const Color(0xFF764BA2),
+                  ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (isCheckedIn
+                      ? const Color(0xFFFF6B6B)
+                      : const Color(0xFF667EEA))
+                  .withOpacity(0.4),
+              blurRadius: 30,
+              offset: const Offset(0, 15),
+            ),
+          ],
+        ),
+        child: isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 3,
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isCheckedIn ? Icons.logout : Icons.fingerprint,
+                    size: 60,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isCheckedIn ? 'Check  OUT' : 'Check IN',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildLocationText(DashboardState state) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.location_on_outlined,
+          size: 16,
+          color: Colors.grey[600],
+        ),
+        const SizedBox(width: 6),
+        Text(
+          'Location: Central Building Office',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeCards(DashboardState state) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildTimeCard(
+            icon: Icons.login,
+            label: 'Check In',
+            time: state.checkInTime,
+            iconColor: const Color(0xFF667EEA),
+          ),
+          _buildTimeCard(
+            icon: Icons.access_time,
+            label: 'Duration',
+            time: state.checkInTime,
+            isDuration: true,
+            checkOutTime: state.checkOutTime,
+            iconColor: const Color(0xFF4CAF50),
+          ),
+          _buildTimeCard(
+            icon: Icons.logout,
+            label: 'Check Out',
+            time: state.checkOutTime,
+            iconColor: const Color(0xFFFF6B6B),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeCard({
+    required IconData icon,
+    required String label,
+    required DateTime? time,
+    bool isDuration = false,
+    DateTime? checkOutTime,
+    required Color iconColor,
+  }) {
+    String displayTime = '--:--';
+    
+    if (isDuration && time != null) {
+      final endTime = checkOutTime ?? DateTime.now();
+      final duration = endTime.difference(time);
+      final hours = duration.inHours;
+      final minutes = duration.inMinutes.remainder(60);
+      displayTime = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    } else if (time != null) {
+      displayTime = DateFormat('HH:mm').format(time);
+    }
+
+    return Column(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(
+            icon,
+            color: iconColor,
+            size: 28,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          displayTime,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C2C2C),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
     );
   }
 }
