@@ -1,92 +1,92 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrm/core/auth/repo/auth_repo.dart';
 import 'package:hrm/core/model/login_model.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
-import 'package:hrm/screens/login/repo/login_repo.dart';
 import 'package:logger/logger.dart';
 
-part 'login_event.dart';
-part 'login_state.dart';
+part 'auth_event.dart';
+part 'auth_state.dart';
 
-class LoginBloc extends Bloc<LoginEvent, LoginState> {
-  final LoginRepo _loginRepo;
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  final AuthRepo _authRepo;
   final log = Logger();
   final pref = PreferencesRepository();
 
-  LoginBloc(this._loginRepo) : super(LoginState.initial()) {
+  AuthBloc(this._authRepo) : super(AuthState.initial()) {
     on<EmailChanged>(_onEmailChanged);
     on<PasswordChanged>(_onPasswordChanged);
-    on<LoginSubmitted>(_onLoginSubmitted);
-    on<CheckLoginStatus>(_onCheckLoginStatus);
+    on<AuthSubmitted>(_onAuthSubmitted);
+    on<CheckAuthStatus>(_onCheckAuthStatus);
     on<LogoutRequested>(_onLogoutRequested);
     on<RefreshUserData>(_onRefreshUserData);
   }
 
-  void _onEmailChanged(EmailChanged event, Emitter<LoginState> emit) {
+  void _onEmailChanged(EmailChanged event, Emitter<AuthState> emit) {
     final isValid = _isValidEmail(event.email);
     emit(state.copyWith(email: event.email, isEmailValid: isValid));
   }
 
-  void _onPasswordChanged(PasswordChanged event, Emitter<LoginState> emit) {
+  void _onPasswordChanged(PasswordChanged event, Emitter<AuthState> emit) {
     final isValid = event.password.length >= 6;
     emit(state.copyWith(password: event.password, isPasswordValid: isValid));
   }
 
-  Future<void> _onLoginSubmitted(
-    LoginSubmitted event,
-    Emitter<LoginState> emit,
+  Future<void> _onAuthSubmitted(
+    AuthSubmitted event,
+    Emitter<AuthState> emit,
   ) async {
-    emit(state.copyWith(status: LoginStatus.loading, message: 'Logging in...'));
+    emit(state.copyWith(status: AuthStatus.loading, message: 'Logging in...'));
 
-    log.d('_onLoginSubmitted::$event');
+    log.d('_onAuthSubmitted::$event');
     try {
-      final loginModel = await _loginRepo.requestLogin(
+      final AuthModel = await _authRepo.requestAuth(
         email: event.email,
         password: event.password,
       );
 
-      log.d('loginModel:${loginModel.toJson()}');
+      log.d('AuthModel:${AuthModel.toJson()}');
 
-      if (loginModel.success == true) {
+      if (AuthModel.success == true) {
         emit(
           state.copyWith(
-            status: LoginStatus.success,
-            message: loginModel.message ?? 'Login successful',
-            userData: loginModel.data,
-            token: loginModel.token,
-            userId: loginModel.userId,
+            status: AuthStatus.success,
+            message: AuthModel.message ?? 'Auth successful',
+            userData: AuthModel.data,
+            token: AuthModel.token,
+            userId: AuthModel.userId,
           ),
         );
         log.d(
-          'loginModel.success:::${loginModel.status}:::::::${loginModel.data}',
+          'AuthModel.success:::${AuthModel.status}:::::::${AuthModel.data}',
         );
       } else {
         emit(
           state.copyWith(
-            status: LoginStatus.failure,
-            message: loginModel.message ?? 'Login failed',
+            status: AuthStatus.failure,
+            message: AuthModel.message ?? 'Auth failed',
           ),
         );
       }
     } catch (e) {
-      log.e('Login error: $e');
+      log.e('Auth error: $e');
       emit(
         state.copyWith(
-          status: LoginStatus.failure,
+          status: AuthStatus.failure,
           message: e.toString().replaceAll('Exception: ', ''),
         ),
       );
     }
   }
 
-  Future<void> _onCheckLoginStatus(
-    CheckLoginStatus event,
-    Emitter<LoginState> emit,
+  Future<void> _onCheckAuthStatus(
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
   ) async {
     emit(
       state.copyWith(
-        status: LoginStatus.loading,
-        message: 'Checking login status...',
+        status: AuthStatus.loading,
+        message: 'Checking Auth status...',
       ),
     );
 
@@ -106,7 +106,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         if (token != null && userData != null) {
           emit(
             state.copyWith(
-              status: LoginStatus.success,
+              status: AuthStatus.success,
               message: 'Already logged in',
               token: token,
               userId: userId != null ? int.tryParse(userId) : null,
@@ -115,36 +115,36 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           );
         } else {
           log.w('Token or userData is null, resetting to initial state');
-          emit(LoginState.initial());
+          emit(AuthState.initial());
         }
       } else {
-        log.d('User not logged in, showing login screen');
-        emit(LoginState.initial());
+        log.d('User not logged in, showing Auth screen');
+        emit(AuthState.initial());
       }
     } catch (e) {
-      log.e('Error checking login status: $e');
-      emit(LoginState.initial());
+      log.e('Error checking Auth status: $e');
+      emit(AuthState.initial());
     }
   }
 
   Future<void> _onLogoutRequested(
     LogoutRequested event,
-    Emitter<LoginState> emit,
+    Emitter<AuthState> emit,
   ) async {
     emit(
-      state.copyWith(status: LoginStatus.loading, message: 'Logging out...'),
+      state.copyWith(status: AuthStatus.loading, message: 'Logging out...'),
     );
 
     try {
       await pref.logout();
       log.d('Logout successful');
 
-      emit(LoginState.initial());
+      emit(AuthState.initial());
     } catch (e) {
       log.e('Logout error: $e');
       emit(
         state.copyWith(
-          status: LoginStatus.failure,
+          status: AuthStatus.failure,
           message: 'Logout failed: ${e.toString()}',
         ),
       );
@@ -153,7 +153,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
   Future<void> _onRefreshUserData(
     RefreshUserData event,
-    Emitter<LoginState> emit,
+    Emitter<AuthState> emit,
   ) async {
     try {
       final userData = await pref.getUserData();

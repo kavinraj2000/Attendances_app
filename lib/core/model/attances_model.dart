@@ -18,7 +18,7 @@ class AttendanceModel extends Equatable {
   final String? checkoutImage;
 
   // Status
-  final String? attendanceStatus; // ✅ IMPORTANT
+  final String? attendanceStatus;
   final String? status;
 
   // Metadata
@@ -45,7 +45,6 @@ class AttendanceModel extends Equatable {
 
   // ───────────────── BUSINESS LOGIC ─────────────────
 
-  /// JS-equivalent logic
   bool get isActiveCheckIn {
     if (checkinTime == null) return false;
     if (checkoutTime != null) return false;
@@ -126,44 +125,41 @@ class AttendanceModel extends Equatable {
       checkoutLongitude: _parseDouble(json['checkout_longitude']),
       checkinImage: json['checkin_image']?.toString(),
       checkoutImage: json['checkout_image']?.toString(),
-      attendanceStatus: json['attendance_status']?.toString(), // ✅ FIX
+      attendanceStatus: json['attendance_status']?.toString(),
       status: json['status']?.toString(),
       createdAt: _parseDateTime(json['created_at']),
       updatedAt: _parseDateTime(json['updated_at']),
     );
   }
 
-Map<String, dynamic> toJson() {
-  return {
-    'id': id,
-    'employee_id': employeeId,
-    'attendance_date': attendanceDate,
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'employee_id': employeeId,
+      'attendance_date': attendanceDate,
 
-    // Check-in
-    'checkin_time': checkinTime?.toIso8601String(),
-    'checkin_latitude': checkinLatitude,
-    'checkin_longitude': checkinLongitude,
-    'checkin_image': checkinImage,
+      'checkin_time': checkinTime?.toIso8601String(),
+      'checkin_latitude': checkinLatitude,
+      'checkin_longitude': checkinLongitude,
+      'checkin_image': checkinImage,
 
-    // Check-out
-    'checkout_time': checkoutTime?.toIso8601String(),
-    'checkout_latitude': checkoutLatitude,
-    'checkout_longitude': checkoutLongitude,
-    'checkout_image': checkoutImage,
+      'checkout_time': checkoutTime?.toIso8601String(),
+      'checkout_latitude': checkoutLatitude,
+      'checkout_longitude': checkoutLongitude,
+      'checkout_image': checkoutImage,
 
-    // Status
-    'attendance_status': attendanceStatus,
-    'status': status,
+      'attendance_status': attendanceStatus,
+      'status': status,
 
-    // Metadata
-    'created_at': createdAt?.toIso8601String(),
-    'updated_at': updatedAt?.toIso8601String(),
-  };
-}
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
+
 
   static DateTime? _parseDateTime(dynamic v) {
+    if (v == null) return null;
     try {
-      if (v == null) return null;
       return DateTime.parse(v.toString());
     } catch (_) {
       return null;
@@ -179,8 +175,6 @@ Map<String, dynamic> toJson() {
     if (v == null) return null;
     return int.tryParse(v.toString());
   }
-
-  // ───────────────── EQUATABLE ─────────────────
 
   @override
   List<Object?> get props => [

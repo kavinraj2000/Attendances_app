@@ -4,7 +4,6 @@ import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/core/repo/api_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
-import 'package:hrm/screens/login/repo/login_repo.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
@@ -22,7 +21,6 @@ class DashboardRepository {
 
   final Dio dio;
   final Logger log = Logger();
-  final LoginRepo loginRepo = LoginRepo();
   final pref = PreferencesRepository();
 
 
@@ -60,7 +58,7 @@ class DashboardRepository {
     final id = await pref.getEmployeeId();
 
     if (user == null || id == null) {
-      throw Exception('User session expired. Please login again');
+      throw Exception('User session expired. Please Auth again');
     }
 
     final now = DateTime.now();
@@ -125,7 +123,7 @@ Future<void> checkOut({
 }) async {
   final user = await pref.getUserData();
   if (user == null || user.employeeId == null) {
-    throw Exception('User session expired. Please login again');
+    throw Exception('User session expired. Please Auth again');
   }
 
   final now = DateTime.now();

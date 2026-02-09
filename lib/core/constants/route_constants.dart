@@ -14,7 +14,7 @@ class RouteConstants {
 
   // Routes where AppBar should be hidden
   static const List<String> routesWithoutAppbar = [
-    RouteName.logs,
+    // RouteName.logs,
     // Add more routes here that shouldn't show the AppBar
     // RouteName.setting,
     // RouteName.profile,

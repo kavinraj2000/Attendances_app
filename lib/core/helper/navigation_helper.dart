@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
+import 'package:hrm/core/auth/bloc/auth_bloc.dart';
 import 'package:hrm/core/constants/route_constants.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
-import 'package:hrm/core/widgets/app_widget/app_widget.dart';
-import 'package:hrm/core/widgets/app_widget/bottom_nav_bar.dart';
+import 'package:hrm/core/widgets/app_widget.dart';
+import 'package:hrm/core/widgets/bottom_nav_bar.dart';
 
 class NavigationHelper extends StatefulWidget {
   final Widget child;
@@ -31,7 +33,7 @@ class NavigationHelper extends StatefulWidget {
 
 class _NavigationHelperState extends State<NavigationHelper> {
   late final MainShellController _controller;
-  final PreferencesRepository _loginRepo = PreferencesRepository();
+  final PreferencesRepository _AuthRepo = PreferencesRepository();
 
   String _userName = 'User';
   String _greeting = 'Good Morning';
@@ -55,7 +57,7 @@ class _NavigationHelperState extends State<NavigationHelper> {
 
   Future<void> _loadUserData() async {
     try {
-      final userData = await _loginRepo.getUserData();
+      final userData = await _AuthRepo.getUserData();
 
       if (userData != null) {
         setState(() {
@@ -98,12 +100,6 @@ class _NavigationHelperState extends State<NavigationHelper> {
     context.go(route);
   }
 
-  void _handleHomeRefresh() {
-    final selectedIndex = _controller.getSelectedIndex(widget.currentRoute);
-    if (selectedIndex == RouteConstants.defaultHomeIndex) {
-      widget.onHomeRefresh?.call();
-    }
-  }
 
   Future<void> _handleBackNavigation() async {
     final isHomeRoute = _controller.isHomeRoute(widget.currentRoute);
@@ -116,35 +112,36 @@ class _NavigationHelperState extends State<NavigationHelper> {
     if (!didPop) _handleBackNavigation();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final selectedIndex = _controller.getSelectedIndex(widget.currentRoute);
-    final shouldShowBottomNavBar = _controller.shouldShowBottomNavBar(
-      widget.currentRoute,
-    );
-    final shouldShowAppBar = _controller.shouldShowappbar(widget.currentRoute);
+@override
+Widget build(BuildContext context) {
+  final selectedIndex = _controller.getSelectedIndex(widget.currentRoute);
+  final shouldShowBottomNavBar =
+      _controller.shouldShowBottomNavBar(widget.currentRoute);
 
-    return PopScope(
+  return BlocListener<AuthBloc, AuthState>(
+    listenWhen: (previous, current) =>
+        previous.status != current.status,
+    listener: (context, state) {
+      if (state.status == AuthStatus.initial) {
+        // 🔐 Logout completed → go to login
+        context.goNamed(RouteName.login);
+      }
+    },
+    child: PopScope(
       canPop: false,
       onPopInvoked: _handlePopInvoked,
       child: Scaffold(
-        appBar: (_isLoadingUserData || !shouldShowAppBar)
-            ? null
-            : CustomAppBar(
-                userName: _userName,
-                greeting: _greeting,
-                avatarUrl: _avatarUrl,
-                showLocation: false,
-                onMenuPressed: () {
-                  print('Menu pressed');
-                },
-                onNotificationPressed: () {
-                  print('Notification pressed');
-                },
-              ),
+        appBar: CustomAppBar(
+          userName: _userName,
+          onLogoutPressed: () {
+            context.read<AuthBloc>().add(LogoutRequested());
+          },
+          onNotificationPressed: () {
+            debugPrint('Notification pressed');
+          },
+        ),
         body: Column(
           children: [
-            // const NetworkBanner(),
             Expanded(child: widget.child),
           ],
         ),
@@ -152,12 +149,12 @@ class _NavigationHelperState extends State<NavigationHelper> {
             ? BottomNavBarWidget(
                 currentIndex: selectedIndex,
                 onTap: _navigateToIndex,
-                // : _handleHomeRefresh,
               )
             : null,
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class MainShellController extends GetxController {
@@ -205,9 +202,8 @@ class MainShellController extends GetxController {
 
   bool shouldShowBottomNavBar(String route) =>
       RouteConstants.shouldShowNavBar(route);
-      
-  bool shouldShowappbar(String route) =>
-      RouteConstants.shouldShowAppbar(route);
+
+  bool shouldShowappbar(String route) => RouteConstants.shouldShowAppbar(route);
 
   bool isHomeRoute(String route) {
     final index = getSelectedIndex(route);

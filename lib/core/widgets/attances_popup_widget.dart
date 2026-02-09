@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hrm/core/helper/attendances_helper.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 
-/* -------------------- COLORS -------------------- */
 
 const Color kPurpleHeader = Color(0xFF5B5FC7);
 const Color kActiveCardBg = Color(0xFF5B9CF5);
@@ -21,7 +20,6 @@ const Color kAbsentColor = Color(0xFFE53935);
 const Color kPresentColor = Color(0xFF43A047);
 const Color kCardBg = Color(0xFFF0F2F8);
 
-/* -------------------- MODELS -------------------- */
 
 enum AttendanceStatus { present, absent, halfDay, leave }
 
@@ -40,6 +38,9 @@ class AttendanceData extends Equatable {
 
   int get totalWorkingMinutes {
     if (checkInTime == null || checkOutTime == null) return 0;
+
+    if (checkOutTime!.isBefore(checkInTime!)) return 0;
+
     return checkOutTime!.difference(checkInTime!).inMinutes;
   }
 
@@ -57,7 +58,6 @@ class AttendanceData extends Equatable {
       ];
 }
 
-/* -------------------- POPUP ENTRY -------------------- */
 
 Future<void> showAttendancePopup(
   BuildContext context,
@@ -79,7 +79,7 @@ Future<void> showAttendancePopup(
     transitionBuilder: (ctx, anim, _, child) {
       final curve = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
       return SlideTransition(
-        position: Tween<Offset>(
+        position: Tween(
           begin: const Offset(0, 0.12),
           end: Offset.zero,
         ).animate(curve),
@@ -88,7 +88,7 @@ Future<void> showAttendancePopup(
     },
     pageBuilder: (ctx, _, __) {
       return BlocProvider.value(
-        value: bloc, // ✅ FIXED PROVIDER
+        value: bloc,
         child: AttendancePopup(data: data),
       );
     },
@@ -99,7 +99,7 @@ Future<void> showAttendancePopup(
   });
 }
 
-/* -------------------- POPUP FROM BLOC -------------------- */
+/* -------------------- FROM BLOC -------------------- */
 
 Future<void> showAttendancePopupFromBloc(
   BuildContext context,
@@ -127,7 +127,7 @@ Future<void> showAttendancePopupFromBloc(
   return showAttendancePopup(context, data);
 }
 
-/* -------------------- ATTENDANCE POPUP -------------------- */
+/* -------------------- UI -------------------- */
 
 class AttendancePopup extends StatelessWidget {
   final AttendanceData data;
@@ -146,7 +146,7 @@ class AttendancePopup extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.90,
+            width: MediaQuery.of(context).size.width * 0.9,
             constraints: const BoxConstraints(maxWidth: 440),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -255,7 +255,6 @@ class _AttendanceBody extends StatelessWidget {
   }
 }
 
-/* -------------------- HELPERS -------------------- */
 
 String _fmtNullable(DateTime? t) => t == null ? '--:--' : _fmtTime(t);
 
@@ -282,7 +281,75 @@ String _formatDate(DateTime d) =>
 String _formatDateShort(DateTime d) =>
     '${_monthsShort[d.month - 1]} ${d.day}, ${d.year}';
 
-/* -------------------- UI SMALL PARTS -------------------- */
+
+class _StatusCard extends StatelessWidget {
+  final AttendanceStatus status;
+  const _StatusCard({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kCardBg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        status.name.toUpperCase(),
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: switch (status) {
+            AttendanceStatus.present => kPresentColor,
+            AttendanceStatus.absent => kAbsentColor,
+            AttendanceStatus.halfDay => Colors.orange,
+            AttendanceStatus.leave => Colors.blue,
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/* -------------------- CONSTANTS -------------------- */
+
+const _months = [
+  '',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const _monthsShort = [
+  'Jan','Feb','Mar','Apr','May','Jun',
+  'Jul','Aug','Sep','Oct','Nov','Dec'
+];
+
+const _weekday = [
+  'Monday','Tuesday','Wednesday',
+  'Thursday','Friday','Saturday','Sunday'
+];
+
+
+void _showErrorSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(message)));
+}
+
+void _showInfoSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(backgroundColor: kPurpleHeader, content: Text(message)));
+}
+
 
 class _PopupHeader extends StatelessWidget {
   final String title;
@@ -348,88 +415,3 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  final AttendanceStatus status;
-  const _StatusCard({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: kCardBg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        status.name.toUpperCase(),
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: switch (status) {
-            AttendanceStatus.present => kPresentColor,
-            AttendanceStatus.absent => kAbsentColor,
-            AttendanceStatus.halfDay => Colors.orange,
-            AttendanceStatus.leave => Colors.blue,
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/* -------------------- CONSTANTS -------------------- */
-
-const _months = [
-  '',
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-const _monthsShort = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-const _weekday = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
-
-/* -------------------- SNACKBARS -------------------- */
-
-void _showErrorSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(backgroundColor: Colors.red, content: Text(message)),
-  );
-}
-
-void _showInfoSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(backgroundColor: kPurpleHeader, content: Text(message)),
-  );
-}

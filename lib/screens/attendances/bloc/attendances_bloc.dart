@@ -29,7 +29,7 @@ class AttendanceLogsBloc extends Bloc<AttendanceLogsEvent, AttendanceLogsState> 
     try {
       final data = await repository.getAllAttendanceData();
 
-      if (data == null || data.isEmpty) {
+      if (data.isEmpty) {
         emit(
           state.copyWith(
             status: AttendancesStatus.success,
@@ -64,7 +64,6 @@ class AttendanceLogsBloc extends Bloc<AttendanceLogsEvent, AttendanceLogsState> 
     }
   }
 
-  /// Handles selecting a specific date
   void _onSelectDate(
     SelectDate event,
     Emitter<AttendanceLogsState> emit,
@@ -74,7 +73,6 @@ class AttendanceLogsBloc extends Bloc<AttendanceLogsEvent, AttendanceLogsState> 
     }
   }
 
-  /// Handles clearing the selected date
   void _onClearSelectedDate(
     ClearSelectedDate event,
     Emitter<AttendanceLogsState> emit,
@@ -82,7 +80,6 @@ class AttendanceLogsBloc extends Bloc<AttendanceLogsEvent, AttendanceLogsState> 
     emit(state.copyWith(clearSelectedDate: true));
   }
 
-  /// Handles changing the displayed month
   Future<void> _onChangeMonth(
     ChangeMonth event,
     Emitter<AttendanceLogsState> emit,
@@ -123,7 +120,6 @@ class AttendanceLogsBloc extends Bloc<AttendanceLogsEvent, AttendanceLogsState> 
     }
   }
 
-  /// Handles refreshing the current schedule
   Future<void> _onRefreshSchedule(
     RefreshSchedule event,
     Emitter<AttendanceLogsState> emit,
@@ -158,7 +154,6 @@ class AttendanceLogsBloc extends Bloc<AttendanceLogsEvent, AttendanceLogsState> 
     }
   }
 
-  /// Filters attendance data by month and year
   List<AttendanceModel> _filterByMonth(
     List<AttendanceModel> data,
     int month,

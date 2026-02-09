@@ -1,14 +1,15 @@
-part of 'login_bloc.dart';
+part of 'auth_bloc.dart';
 
-enum LoginStatus {
+
+enum AuthStatus {
   initial,
   loading,
   success,
   failure,
 }
 
-class LoginState extends Equatable {
-  final LoginStatus status;
+class AuthState extends Equatable {
+  final AuthStatus status;
   final String email;
   final String password;
   final bool isEmailValid;
@@ -18,7 +19,7 @@ class LoginState extends Equatable {
   final String? token;
   final int? userId;
 
-  const LoginState({
+  const AuthState({
     required this.status,
     this.email = '',
     this.password = '',
@@ -30,9 +31,9 @@ class LoginState extends Equatable {
     this.userId,
   });
 
-  factory LoginState.initial() {
-    return const LoginState(
-      status: LoginStatus.initial,
+  factory AuthState.initial() {
+    return const AuthState(
+      status: AuthStatus.initial,
       email: '',
       password: '',
       isEmailValid: false,
@@ -42,8 +43,8 @@ class LoginState extends Equatable {
 
   bool get isFormValid => isEmailValid && isPasswordValid;
 
-  LoginState copyWith({
-    LoginStatus? status,
+  AuthState copyWith({
+    AuthStatus? status,
     String? email,
     String? password,
     bool? isEmailValid,
@@ -53,7 +54,7 @@ class LoginState extends Equatable {
     String? token,
     int? userId,
   }) {
-    return LoginState(
+    return AuthState(
       status: status ?? this.status,
       email: email ?? this.email,
       password: password ?? this.password,

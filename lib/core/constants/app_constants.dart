@@ -29,7 +29,7 @@ class APPCONSTANTS {
     fontWeight: FontWeight.normal,
   );
 
-  final TextStyle headerwhite = GoogleFonts.unna(
+  final TextStyle headerwhite = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.bold,
     color: Colors.white,

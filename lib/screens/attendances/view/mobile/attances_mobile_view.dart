@@ -5,6 +5,38 @@ import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/core/widgets/attances_popup_widget.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 
+/// Design constants for attendance calendar
+class _AttendanceConstants {
+  // Colors
+  static const presentColor = Color(0xFF4CAF50);
+  static const absentColor = Color(0xFFEF5350);
+  static const halfDayColor = Color(0xFFFF9800);
+  static const leaveColor = Color(0xFF42A5F5);
+  static const todayColor = Color(0xFF667EEA);
+  static const selectedBorderColor = Color(0xFF667EEA);
+  static const inactiveDayColor = Color(0xFFBDBDBD);
+  static const weekendColor = Color(0xFFE0E0E0);
+
+  // Text colors
+  static const textPrimary = Color(0xFF212121);
+  static const textSecondary = Color(0xFF757575);
+  static const textTertiary = Color(0xFF9E9E9E);
+
+  // Spacing
+  static const double spacingXs = 4.0;
+  static const double spacingS = 8.0;
+  static const double spacingM = 12.0;
+  static const double spacingL = 16.0;
+  static const double spacingXl = 20.0;
+  static const double spacingXxl = 24.0;
+
+  // Sizes
+  static const double dayCircleSize = 40.0;
+  static const double borderRadiusS = 8.0;
+  static const double borderRadiusM = 12.0;
+  static const double borderRadiusL = 16.0;
+}
+
 class AttendanceLogsScreen extends StatefulWidget {
   const AttendanceLogsScreen({super.key});
 
@@ -13,13 +45,21 @@ class AttendanceLogsScreen extends StatefulWidget {
 }
 
 class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    _loadCurrentMonthData();
+    _loadInitialData();
   }
 
-  void _loadCurrentMonthData() {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _loadInitialData() {
     final now = DateTime.now();
     context.read<AttendanceLogsBloc>().add(
           LoadAttendanceLogs(month: now.month, year: now.year),
@@ -29,22 +69,28 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Constants.color.lightColors['white'],
-      body: SafeArea(
-        child: BlocConsumer<AttendanceLogsBloc, AttendanceLogsState>(
-          listener: _handleStateChanges,
-          builder: (context, state) {
-            if (state.status == AttendancesStatus.loading) {
-              return _buildLoadingWidget();
-            } else if (state.status == AttendancesStatus.error) {
-              return _buildErrorWidget(state);
-            } else if (state.status == AttendancesStatus.success) {
-              return _buildLoadedContent(state);
-            }
-            return _buildEmptyWidget();
-          },
-        ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: BlocConsumer<AttendanceLogsBloc, AttendanceLogsState>(
+        listener: _handleStateChanges,
+        builder: (context, state) {
+          if (state.status == AttendancesStatus.loading) {
+            return _buildLoadingWidget();
+          } else if (state.status == AttendancesStatus.error) {
+            return _buildErrorWidget(state);
+          } else if (state.status == AttendancesStatus.success) {
+            return _buildCalendarView(state);
+          }
+          return _buildEmptyWidget();
+        },
       ),
+    );
+  }
+
+  void _scrollToCurrentMonth() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
     );
   }
 
@@ -54,21 +100,25 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
     }
   }
 
+  /* ---------------- LOADING WIDGET ---------------- */
+
   Widget _buildLoadingWidget() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            color: Constants.color.lightColors['primary'],
+          const CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              _AttendanceConstants.todayColor,
+            ),
             strokeWidth: 3,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: _AttendanceConstants.spacingL),
           Text(
             'Loading attendance data...',
             style: TextStyle(
               fontSize: 14,
-              color: Constants.color.lightColors['primary'],
+              color: _AttendanceConstants.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -77,8 +127,10 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
     );
   }
 
+  /* ---------------- ERROR WIDGET ---------------- */
+
   Widget _buildErrorWidget(AttendanceLogsState state) {
-    IconData errorIcon = Icons.error_outline;
+    IconData errorIcon = Icons.error_outline_rounded;
     String errorTitle = 'Error';
     String errorMessage = state.errorMessage ?? 'An error occurred';
 
@@ -89,8 +141,7 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
     } else if (state.isServerError) {
       errorIcon = Icons.cloud_off_rounded;
       errorTitle = 'Server Error';
-      errorMessage =
-          'Our servers are currently experiencing issues. Please try again later.';
+      errorMessage = 'Our servers are currently experiencing issues.';
     } else if (state.isAuthError) {
       errorIcon = Icons.lock_outline_rounded;
       errorTitle = 'Authentication Required';
@@ -106,46 +157,50 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Constants.color.lightColors['primary']?.withOpacity(0.1),
+                color: _AttendanceConstants.todayColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 errorIcon,
                 size: 64,
-                color: Constants.color.lightColors['primary'],
+                color: _AttendanceConstants.todayColor,
               ),
             ),
             const SizedBox(height: 24),
             Text(
               errorTitle,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Constants.color.lightColors['primary'],
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: _AttendanceConstants.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               errorMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black54,
+              style: TextStyle(
+                fontSize: 14,
+                color: _AttendanceConstants.textSecondary,
                 height: 1.5,
               ),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: _loadCurrentMonthData,
+              onPressed: _loadInitialData,
               icon: const Icon(Icons.refresh_rounded, size: 20),
               label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Constants.color.lightColors['primary'],
+                backgroundColor: _AttendanceConstants.todayColor,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(
+                    _AttendanceConstants.borderRadiusM,
+                  ),
                 ),
                 elevation: 2,
               ),
@@ -164,15 +219,15 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
           Icon(
             Icons.calendar_today_rounded,
             size: 64,
-            color: Colors.grey[400],
+            color: _AttendanceConstants.inactiveDayColor,
           ),
           const SizedBox(height: 16),
-          Text(
-            'No Data',
+          const Text(
+            'No attendance data',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: _AttendanceConstants.textSecondary,
             ),
           ),
         ],
@@ -180,130 +235,326 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
     );
   }
 
-  Widget _buildLoadedContent(AttendanceLogsState state) {
+  Widget _buildCalendarView(AttendanceLogsState state) {
+    final now = DateTime.now();
+    final currentYear = now.year;
+
     return RefreshIndicator(
+      color: _AttendanceConstants.todayColor,
       onRefresh: () async {
         context.read<AttendanceLogsBloc>().add(const RefreshSchedule());
         await Future.delayed(const Duration(milliseconds: 500));
       },
-      color: Constants.color.lightColors['primary'],
       child: CustomScrollView(
+        controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(child: _buildCalendarSection(state)),
-          SliverToBoxAdapter(child: _buildLegendSection()),
-          SliverToBoxAdapter(child: _buildStatisticsSection(state)),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
-        ],
-      ),
-    );
-  }
+          // Summary and Legend at top
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(_AttendanceConstants.spacingL),
+              child: Column(
+                children: [
+                  _buildMonthlySummaryCard(state),
+                  const SizedBox(height: _AttendanceConstants.spacingL),
+                  _buildLegendCard(),
+                  const SizedBox(height: _AttendanceConstants.spacingL),
+                ],
+              ),
+            ),
+          ),
 
-  Widget _buildCalendarSection(AttendanceLogsState state) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Constants.color.lightColors['primary']!,
-            Constants.color.lightColors['secondary']!,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Constants.color.lightColors['primary']!.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final monthNumber = index + 1; // 1-12
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    left: _AttendanceConstants.spacingL,
+                    right: _AttendanceConstants.spacingL,
+                    bottom: _AttendanceConstants.spacingL,
+                  ),
+                  child: _buildMonthCalendar(state, monthNumber, currentYear),
+                );
+              },
+              childCount: 12, 
+            ),
+          ),
+
+          // Bottom padding
+          const SliverToBoxAdapter(
+            child: SizedBox(height: _AttendanceConstants.spacingXxl),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMonthlySummaryCard(AttendanceLogsState state) {
+    final stats = state.datesWithAttendance;
+    final now = DateTime.now();
+    final monthName = _getMonthName(now.month);
+
+    return Container(
+      padding: const EdgeInsets.all(_AttendanceConstants.spacingXl),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(_AttendanceConstants.borderRadiusL),
+       
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMonthNavigation(state),
-          const SizedBox(height: 20),
-          _buildWeekDayHeaders(),
-          const SizedBox(height: 12),
-          _buildCalendarGrid(state),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    monthName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    '${now.year}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: _AttendanceConstants.spacingXl),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSummaryItem(
+                  'Present',
+                  '${stats['present'] ?? 0}',
+                  Icons.check_circle,
+                ),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                  'Absent',
+                  '${stats['absent'] ?? 0}',
+                  Icons.cancel,
+                ),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                  'Half Day',
+                  '${stats['halfDay'] ?? 0}',
+                  Icons.access_time,
+                ),
+              ),
+              Expanded(
+                child: _buildSummaryItem(
+                  'Leave',
+                  '${stats['leave'] ?? 0}',
+                  Icons.event_busy,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMonthNavigation(AttendanceLogsState state) {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ];
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildSummaryItem(String label, String count, IconData icon) {
+    return Column(
       children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left_rounded,
-              color: Colors.white, size: 28),
-          onPressed: () => _navigateMonth(state, -1),
+        Icon(icon, color: Colors.white, size: 24),
+        const SizedBox(height: 6),
+        Text(
+          count,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
-        Column(
-          children: [
-            Text(
-              months[state.currentMonth - 1],
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-            Text(
-              '${state.currentYear}',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.white70,
-              ),
-            ),
-          ],
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right_rounded,
-              color: Colors.white, size: 28),
-          onPressed: () => _navigateMonth(state, 1),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withOpacity(0.9),
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  void _navigateMonth(AttendanceLogsState state, int delta) {
-    int newMonth = state.currentMonth + delta;
-    int newYear = state.currentYear;
+  Widget _buildLegendCard() {
+    return Container(
+      padding: const EdgeInsets.all(_AttendanceConstants.spacingL),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_AttendanceConstants.borderRadiusM),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildLegendItem('Present', _AttendanceConstants.presentColor),
+              _buildLegendItem('Absent', _AttendanceConstants.absentColor),
+              _buildLegendItem('Half Day', _AttendanceConstants.halfDayColor),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildLegendItem('Late', const Color(0xFFFFC107)),
+              _buildLegendItem('Inprogress', _AttendanceConstants.todayColor),
+              _buildLegendItem('Pending', const Color(0xFF6304F1)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (newMonth < 1) {
-      newMonth = 12;
-      newYear--;
-    } else if (newMonth > 12) {
-      newMonth = 1;
-      newYear++;
-    }
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: _AttendanceConstants.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 
-    context.read<AttendanceLogsBloc>().add(
-          ChangeMonth(month: newMonth, year: newYear),
-        );
+  Widget _buildMonthCalendar(AttendanceLogsState state, int month, int year) {
+    final now = DateTime.now();
+    final monthName = _getMonthName(month);
+    final isCurrentMonth = month == now.month && year == now.year;
+
+    return Container(
+      padding: const EdgeInsets.all(_AttendanceConstants.spacingXl),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_AttendanceConstants.borderRadiusL),
+        border: isCurrentMonth
+            ? Border.all(
+                color: _AttendanceConstants.todayColor.withOpacity(0.3),
+                width: 2,
+              )
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    monthName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: _AttendanceConstants.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '$year',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _AttendanceConstants.textTertiary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              if (isCurrentMonth)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _AttendanceConstants.todayColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Current',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _AttendanceConstants.todayColor,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: _AttendanceConstants.spacingXl),
+          _buildWeekDayHeaders(),
+          const SizedBox(height: _AttendanceConstants.spacingM),
+          _buildCalendarGrid(state, month, year),
+        ],
+      ),
+    );
   }
 
   Widget _buildWeekDayHeaders() {
-    final weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: weekDays.map((day) {
@@ -311,10 +562,10 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
           child: Center(
             child: Text(
               day,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: _AttendanceConstants.textTertiary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -324,21 +575,21 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
     );
   }
 
-  Widget _buildCalendarGrid(AttendanceLogsState state) {
-    final daysInMonth =
-        DateTime(state.currentYear, state.currentMonth + 1, 0).day;
-    final firstDayOfMonth =
-        DateTime(state.currentYear, state.currentMonth, 1).weekday;
+  /* ---------------- CALENDAR GRID ---------------- */
+
+  Widget _buildCalendarGrid(AttendanceLogsState state, int month, int year) {
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final firstDayOfMonth = DateTime(year, month, 1).weekday;
     List<Widget> dayWidgets = [];
 
-    // Add empty cells for days before month starts
-    for (int i = 0; i < firstDayOfMonth - 1; i++) {
+    int startOffset = firstDayOfMonth % 7;
+
+    for (int i = 0; i < startOffset; i++) {
       dayWidgets.add(const SizedBox());
     }
 
-    // Add current month days
     for (int day = 1; day <= daysInMonth; day++) {
-      final date = DateTime(state.currentYear, state.currentMonth, day);
+      final date = DateTime(year, month, day);
       final attendanceData = state.getAttendanceForDate(date);
       final isSelected = state.selectedDate != null &&
           state.selectedDate!.year == date.year &&
@@ -352,47 +603,76 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
       crossAxisCount: 7,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
+      mainAxisSpacing: _AttendanceConstants.spacingS,
+      crossAxisSpacing: _AttendanceConstants.spacingS,
       children: dayWidgets,
     );
   }
 
+  /* ---------------- DAY CELL ---------------- */
+
   Widget _buildDayCell(
-      DateTime date, AttendanceModel? attendanceData, bool isSelected) {
+    DateTime date,
+    AttendanceModel? attendanceData,
+    bool isSelected,
+  ) {
     final now = DateTime.now();
     final isToday =
         date.year == now.year && date.month == now.month && date.day == now.day;
+    final isFutureDate = date.isAfter(now);
+    final isWeekend =
+        date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
 
     Color? backgroundColor;
-    Color textColor = Colors.white70;
+    Color textColor = _AttendanceConstants.textPrimary;
+    Color? borderColor;
 
-    if (attendanceData != null) {
+    if (isFutureDate) {
+      textColor = _AttendanceConstants.textTertiary;
+    } else if (attendanceData != null) {
       final status = _determineAttendanceStatus(attendanceData);
       backgroundColor = _getStatusColor(status);
       textColor = Colors.white;
     } else if (isToday) {
-      backgroundColor = const Color(0xFFE8A87C);
+      backgroundColor = _AttendanceConstants.todayColor;
       textColor = Colors.white;
+    } else if (isWeekend && !isFutureDate) {
+      backgroundColor = _AttendanceConstants.weekendColor.withOpacity(0.3);
+      textColor = _AttendanceConstants.textSecondary;
+    }
+
+    if (isSelected) {
+      borderColor = _AttendanceConstants.selectedBorderColor;
     }
 
     return GestureDetector(
-      onTap: () => _handleDayTap(date),
+      onTap: isFutureDate ? null : () => _handleDayTap(date),
       child: Container(
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.transparent,
+          color: backgroundColor,
           shape: BoxShape.circle,
-          border:
-              isSelected ? Border.all(color: Colors.white, width: 2.5) : null,
+          border: borderColor != null
+              ? Border.all(color: borderColor, width: 2.5)
+              : null,
+          boxShadow: (isToday || attendanceData != null) && !isSelected
+              ? [
+                  BoxShadow(
+                    color: (backgroundColor ?? Colors.transparent)
+                        .withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Center(
           child: Text(
             '${date.day}',
             style: TextStyle(
               fontSize: 14,
-              fontWeight: (isSelected || isToday || attendanceData != null)
-                  ? FontWeight.bold
-                  : FontWeight.normal,
+              fontWeight: (isToday || attendanceData != null || isSelected)
+                  ? FontWeight.w700
+                  : FontWeight.w500,
               color: textColor,
             ),
           ),
@@ -405,199 +685,14 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
     showAttendancePopupFromBloc(context, date);
   }
 
-  Widget _buildLegendSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Legend',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 20,
-            runSpacing: 12,
-            children: [
-              _buildLegendItem('Present', const Color(0xFF43A047)),
-              _buildLegendItem('Absent', const Color(0xFFE53935)),
-              _buildLegendItem('Half Day', const Color(0xFFFFA726)),
-              _buildLegendItem('Today', const Color(0xFFE8A87C)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatisticsSection(AttendanceLogsState state) {
-    final stats = state.datesWithAttendance;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Monthly Summary',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Present',
-                  stats['present'] ?? 0,
-                  const Color(0xFF43A047),
-                  Icons.check_circle_outline,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Absent',
-                  stats['absent'] ?? 0,
-                  const Color(0xFFE53935),
-                  Icons.cancel_outlined,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Half Day',
-                  stats['halfDay'] ?? 0,
-                  const Color(0xFFFFA726),
-                  Icons.access_time_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'Leave',
-                  stats['leave'] ?? 0,
-                  const Color(0xFF42A5F5),
-                  Icons.event_busy_rounded,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, int count, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: color.withOpacity(0.8),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   AttendanceStatus _determineAttendanceStatus(AttendanceModel model) {
     final hasCheckIn = model.checkinTime != null &&
-        model.checkinTime.toString().isNotEmpty &&
-        model.checkinTime.toString() != 'null';
+        model.checkinTime!.toIso8601String().isNotEmpty &&
+        model.checkinTime!.toIso8601String() != 'null';
 
     final hasCheckOut = model.checkoutTime != null &&
-        model.checkoutTime.toString().isNotEmpty &&
-        model.checkoutTime.toString() != 'null';
+        model.checkoutTime!.toIso8601String().isNotEmpty &&
+        model.checkoutTime!.toIso8601String() != 'null';
 
     if (!hasCheckIn && !hasCheckOut) {
       return AttendanceStatus.absent;
@@ -613,14 +708,32 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
   Color _getStatusColor(AttendanceStatus status) {
     switch (status) {
       case AttendanceStatus.present:
-        return const Color(0xFF43A047);
+        return _AttendanceConstants.presentColor;
       case AttendanceStatus.absent:
-        return const Color(0xFFE53935);
+        return _AttendanceConstants.absentColor;
       case AttendanceStatus.halfDay:
-        return const Color(0xFFFFA726);
+        return _AttendanceConstants.halfDayColor;
       case AttendanceStatus.leave:
-        return const Color(0xFF42A5F5);
+        return _AttendanceConstants.leaveColor;
     }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return months[month - 1];
   }
 
   void _showErrorSnackBar(BuildContext context, String message) {
@@ -628,15 +741,22 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white),
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
             const SizedBox(width: 12),
-            Expanded(child: Text(message)),
+            Expanded(
+              child: Text(message, style: const TextStyle(fontSize: 14)),
+            ),
           ],
         ),
-        backgroundColor: const Color(0xFFE53935),
+        backgroundColor: _AttendanceConstants.absentColor,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            _AttendanceConstants.borderRadiusM,
+          ),
+        ),
+        margin: const EdgeInsets.all(_AttendanceConstants.spacingL),
       ),
     );
   }
