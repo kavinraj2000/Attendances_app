@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/model/attances_model.dart';
+import 'package:hrm/core/model/leave_req_model.dart';
 import 'package:hrm/core/repo/api_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
 class LeaveFormRepository {
@@ -46,9 +46,11 @@ class LeaveFormRepository {
     );
   }
 
-  Future<AttendanceModel> checkIn({
-    required double lat,
-    required double lng,
+  Future<LeaveRequestModel> leaverequest({
+    required String leaveType,
+    required String reason, 
+    required DateTime startdate,
+    required DateTime enddate,
     String? imageName,
   }) async {
     final user = await pref.getUserData();
@@ -58,13 +60,13 @@ class LeaveFormRepository {
       throw Exception('User session expired. Please Auth again');
     }
 
-    final now = DateTime.now();
-
     final payload = {
-      "requestname": "data_add",
+      "requestname": "add_leave_request",
       "data": {
-        "tablename": "users",
-        "columndata": {"email": "test1", "password_hash": "test"},
+        "leave_type": leaveType,
+        "start_date": startdate.toIso8601String(),
+        "end_date": enddate.toIso8601String(),
+        "reason": reason,
       },
     };
 
@@ -78,17 +80,15 @@ class LeaveFormRepository {
         ),
       );
 
-      log.i('Check-in response: ${response.statusCode}');
-      log.d('Check-in response data: ${response.data}');
+      log.i('request response: ${response.statusCode}');
+      log.d('request response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final attendance = AttendanceModel(
-          employeeId: id.toString(),
-          attendanceDate: DateFormat('yyyy-MM-dd').format(now),
-          checkinTime: now,
-          checkinLatitude: lat,
-          checkinLongitude: lng,
-          checkinImage: imageName,
+        final attendance = LeaveRequestModel(
+          endDate: enddate,
+          leaveType: leaveType,
+          startDate: startdate,
+          reason: reason,
         );
 
         return attendance;
@@ -97,16 +97,60 @@ class LeaveFormRepository {
       final errorMessage =
           response.data?['message'] ??
           response.data?['error'] ??
-          'Check-in failed';
+          'request failed';
       throw Exception(errorMessage);
     } on DioException catch (e) {
-      log.e('Check-in API error', error: e);
-      throw _handleDioError(e, 'Check-in failed');
+      log.e('request API error', error: e);
+      throw _handleDioError(e, 'request failed');
     } catch (e) {
-      log.e('Check-in error', error: e);
+      log.e('request error', error: e);
       rethrow;
     }
   }
+
+  Future<List<AttendanceModel>> getAllAttendanceData() async {
+    final user = await pref.getUserData();
+    if (user == null || user.employeeId == null) {
+      log.w('User not logged in');
+      return [];
+    }
+
+    final payload = {
+      "requestname": "data_read",
+      "data": {
+        "tablename": "attendance_details",
+        "columns": [],
+        "where": {"employee_id": user.employeeId.toString()},
+      },
+    };
+ 
+    try {
+      final response = await dio.post(
+        Constants.api.getdata,
+        data: payload,
+        options: Options(
+          validateStatus: (_) => true,
+          contentType: Headers.jsonContentType,
+        ),
+      );
+      
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        log.w('Failed to fetch attendance data: ${response.statusCode}');
+        return [];
+      }
+
+      final list = response.data['data'] as List<dynamic>? ?? [];
+      return list.map((e) => AttendanceModel.fromJson(e)).toList();
+    } on DioException catch (e) {
+      log.e('Failed to fetch attendance data', error: e);
+      return [];
+    } catch (e) {
+      log.e('Error parsing attendance data', error: e);
+      return [];
+    }
+  }
+
 
   Exception _handleDioError(DioException error, String defaultMessage) {
     if (error.type == DioExceptionType.connectionTimeout ||

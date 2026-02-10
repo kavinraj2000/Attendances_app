@@ -10,11 +10,9 @@ class DashboardState extends Equatable {
   final DateTime? checkOutTime;
   final List<AttendanceModel> attendanceList;
   final String? errorMessage;
-  
-  // Calendar-related fields
   final DateTime selectedDate;
   final DateTime focusedMonth;
-  final Map<DateTime, List<String>> events; // Date to list of event descriptions
+  final Map<DateTime, List<String>> events; 
 
    DashboardState({
     required this.loadingStatus,
@@ -39,7 +37,6 @@ class DashboardState extends Equatable {
     );
   }
 
-  // Helper method to check if a date has events (attendance records)
   List<AttendanceModel> getEventsForDate(DateTime date) {
     return attendanceList.where((attendance) {
       if (attendance.checkinTime == null) return false;
@@ -50,7 +47,6 @@ class DashboardState extends Equatable {
     }).toList();
   }
 
-  // Calculate total hours worked
   double get totalHoursWorked {
     double total = 0;
     for (var attendance in attendanceList) {
@@ -62,7 +58,6 @@ class DashboardState extends Equatable {
     return total;
   }
 
-  // Calculate hours worked today
   double get todayHoursWorked {
     final today = DateTime.now();
     final todayAttendance = attendanceList.where((attendance) {
@@ -83,7 +78,6 @@ class DashboardState extends Equatable {
     return duration.inMinutes / 60;
   }
 
-  // Calculate attendance rate for the week
   double get weekAttendanceRate {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));

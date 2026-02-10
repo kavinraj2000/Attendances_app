@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:hrm/core/constants/route_constants.dart';
 
 class BottomNavBarWidget extends StatelessWidget {
   final int currentIndex;
@@ -28,38 +30,13 @@ class BottomNavBarWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                label: 'Home',
-                index: 0,
-              ),
-              _buildNavItem(
-                icon: Icons.people_outline,
-                activeIcon: Icons.people,
-                label: 'Attendance',
-                index: 1,
-              ),
-              _buildNavItem(
-                icon: Icons.insert_chart_outlined,
-                activeIcon: Icons.insert_chart,
-                label: 'Reports',
-                index: 2,
-              ),
-              _buildNavItem(
-                icon: Icons.notifications_outlined,
-                activeIcon: Icons.notifications,
-                label: 'Alerts',
-                index: 3,
-              ),
-              _buildNavItem(
-                icon: Icons.menu,
-                activeIcon: Icons.menu,
-                label: 'More',
-                index: 4,
-              ),
-            ],
+            children: RouteConstants.navbarItems.map((item) {
+              return _buildNavItem(
+                icon: item['icon'] as String,
+                label: item['label'] as String,
+                index: item['index'] as int,
+              );
+            }).toList(),
           ),
         ),
       ),
@@ -67,8 +44,7 @@ class BottomNavBarWidget extends StatelessWidget {
   }
 
   Widget _buildNavItem({
-    required IconData icon,
-    required IconData activeIcon,
+    required String icon,
     required String label,
     required int index,
   }) {
@@ -82,12 +58,13 @@ class BottomNavBarWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isActive ? activeIcon : icon,
+            SvgPicture.asset(
+              icon,
+              width: 24,
+              height: 24,
               color: isActive
                   ? const Color(0xFF667EEA)
                   : const Color(0xFF9E9E9E),
-              size: 24,
             ),
             const SizedBox(height: 4),
             Text(

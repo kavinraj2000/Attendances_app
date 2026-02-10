@@ -13,7 +13,7 @@ class APICONSTANTS {
    final listDATA='data/list';
    final getdata='data/read';
    final leaveREQUEST='leaverequest/add';
+   final editleaveREQUEST='leaverequest/edit';
 
-  get attendanceHistory => null;
 
 }

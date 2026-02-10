@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/core/helper/attendances_helper.dart';
+import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
-
+import 'package:logger/logger.dart';
 
 const Color kPurpleHeader = Color(0xFF5B5FC7);
 const Color kActiveCardBg = Color(0xFF5B9CF5);
@@ -20,27 +21,22 @@ const Color kAbsentColor = Color(0xFFE53935);
 const Color kPresentColor = Color(0xFF43A047);
 const Color kCardBg = Color(0xFFF0F2F8);
 
-
-enum AttendanceStatus { present, absent, halfDay, leave }
-
 class AttendanceData extends Equatable {
   final DateTime date;
   final DateTime? checkInTime;
   final DateTime? checkOutTime;
-  final AttendanceStatus status;
+  final AttendanceModel? data;
 
   const AttendanceData({
     required this.date,
     this.checkInTime,
     this.checkOutTime,
-    required this.status,
+    this.data,
   });
 
   int get totalWorkingMinutes {
     if (checkInTime == null || checkOutTime == null) return 0;
-
     if (checkOutTime!.isBefore(checkInTime!)) return 0;
-
     return checkOutTime!.difference(checkInTime!).inMinutes;
   }
 
@@ -54,10 +50,8 @@ class AttendanceData extends Equatable {
         date,
         checkInTime,
         checkOutTime,
-        status,
       ];
 }
-
 
 Future<void> showAttendancePopup(
   BuildContext context,
@@ -65,6 +59,7 @@ Future<void> showAttendancePopup(
   bool updateBlocSelection = true,
 }) {
   final bloc = context.read<AttendanceLogsBloc>();
+  Logger().d('showAttendancePopup::${data.data}');
 
   if (updateBlocSelection) {
     bloc.add(SelectDate(data.date));
@@ -99,8 +94,6 @@ Future<void> showAttendancePopup(
   });
 }
 
-/* -------------------- FROM BLOC -------------------- */
-
 Future<void> showAttendancePopupFromBloc(
   BuildContext context,
   DateTime date,
@@ -108,7 +101,7 @@ Future<void> showAttendancePopupFromBloc(
   final bloc = context.read<AttendanceLogsBloc>();
   final state = bloc.state;
 
-  if (state.status == AttendancesStatus.loading) {
+  if (state.status == AttendanceLogStatus.loading) {
     _showErrorSnackBar(context, 'Attendance data not loaded');
     return Future.value();
   }
@@ -248,13 +241,12 @@ class _AttendanceBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _StatusCard(status: data.status),
+          _StatusCard(status: data.data?.attendanceStatus),
         ],
       ),
     );
   }
 }
-
 
 String _fmtNullable(DateTime? t) => t == null ? '--:--' : _fmtTime(t);
 
@@ -281,13 +273,15 @@ String _formatDate(DateTime d) =>
 String _formatDateShort(DateTime d) =>
     '${_monthsShort[d.month - 1]} ${d.day}, ${d.year}';
 
-
 class _StatusCard extends StatelessWidget {
-  final AttendanceStatus status;
+  final String? status;
   const _StatusCard({required this.status});
 
   @override
   Widget build(BuildContext context) {
+    final statusText = status ?? 'UNKNOWN';
+    final statusColor = _getStatusColor(status);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -295,26 +289,39 @@ class _StatusCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
-        status.name.toUpperCase(),
+        statusText.toUpperCase(),
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: switch (status) {
-            AttendanceStatus.present => kPresentColor,
-            AttendanceStatus.absent => kAbsentColor,
-            AttendanceStatus.halfDay => Colors.orange,
-            AttendanceStatus.leave => Colors.blue,
-          },
+          color: statusColor,
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(String? status) {
+    if (status == null) return kSubtitleGrey;
+    
+    switch (status.toUpperCase()) {
+      case 'ABSENT':
+        return kAbsentColor;
+      case 'PRESENT':
+        return kPresentColor;
+      case 'LATE':
+        return Colors.orange;
+      case 'PENDING':
+        return Colors.grey;
+      case 'INPROGRESS':
+        return Colors.blue;
+      default:
+        return kSubtitleGrey;
+    }
   }
 }
 
 /* -------------------- CONSTANTS -------------------- */
 
 const _months = [
-  '',
   'January',
   'February',
   'March',
@@ -330,26 +337,41 @@ const _months = [
 ];
 
 const _monthsShort = [
-  'Jan','Feb','Mar','Apr','May','Jun',
-  'Jul','Aug','Sep','Oct','Nov','Dec'
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec'
 ];
 
 const _weekday = [
-  'Monday','Tuesday','Wednesday',
-  'Thursday','Friday','Saturday','Sunday'
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday'
 ];
 
-
 void _showErrorSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(message)));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(backgroundColor: Colors.red, content: Text(message)),
+  );
 }
 
 void _showInfoSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(backgroundColor: kPurpleHeader, content: Text(message)));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(backgroundColor: kPurpleHeader, content: Text(message)),
+  );
 }
-
 
 class _PopupHeader extends StatelessWidget {
   final String title;
@@ -414,4 +436,3 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
-

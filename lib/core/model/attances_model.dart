@@ -4,26 +4,19 @@ class AttendanceModel extends Equatable {
   final int? id;
   final String employeeId;
   final String attendanceDate;
-
-  // Check-in
   final DateTime? checkinTime;
   final double? checkinLatitude;
   final double? checkinLongitude;
   final String? checkinImage;
-
-  // Check-out
   final DateTime? checkoutTime;
   final double? checkoutLatitude;
   final double? checkoutLongitude;
   final String? checkoutImage;
-
-  // Status
   final String? attendanceStatus;
-  final String? status;
-
-  // Metadata
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final String? totalWorkHours;
+  final String? remarks;
+  final DateTime? created;
+  final DateTime? modified;
 
   const AttendanceModel({
     this.id,
@@ -38,26 +31,22 @@ class AttendanceModel extends Equatable {
     this.checkinImage,
     this.checkoutImage,
     this.attendanceStatus,
-    this.status,
-    this.createdAt,
-    this.updatedAt,
+    this.totalWorkHours,
+    this.remarks,
+    this.created,
+    this.modified,
   });
-
-  // ───────────────── BUSINESS LOGIC ─────────────────
 
   bool get isActiveCheckIn {
     if (checkinTime == null) return false;
     if (checkoutTime != null) return false;
     if (attendanceStatus == 'PENDING') return false;
 
-    final diffHours =
-        DateTime.now().difference(checkinTime!).inHours;
-
+    final diffHours = DateTime.now().difference(checkinTime!).inHours;
     return diffHours <= 24;
   }
 
-  bool get isComplete =>
-      checkinTime != null && checkoutTime != null;
+  bool get isComplete => checkinTime != null && checkoutTime != null;
 
   Duration get workingDuration {
     if (checkinTime == null) return Duration.zero;
@@ -72,8 +61,6 @@ class AttendanceModel extends Equatable {
     return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
   }
 
-  // ───────────────── COPY WITH ─────────────────
-
   AttendanceModel copyWith({
     int? id,
     String? employeeId,
@@ -87,9 +74,10 @@ class AttendanceModel extends Equatable {
     String? checkinImage,
     String? checkoutImage,
     String? attendanceStatus,
-    String? status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    String? totalWorkHours,
+    String? remarks,
+    DateTime? created,
+    DateTime? modified,
   }) {
     return AttendanceModel(
       id: id ?? this.id,
@@ -104,13 +92,12 @@ class AttendanceModel extends Equatable {
       checkinImage: checkinImage ?? this.checkinImage,
       checkoutImage: checkoutImage ?? this.checkoutImage,
       attendanceStatus: attendanceStatus ?? this.attendanceStatus,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      totalWorkHours: totalWorkHours ?? this.totalWorkHours,
+      remarks: remarks ?? this.remarks,
+      created: created ?? this.created,
+      modified: modified ?? this.modified,
     );
   }
-
-  // ───────────────── JSON ─────────────────
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
@@ -126,9 +113,10 @@ class AttendanceModel extends Equatable {
       checkinImage: json['checkin_image']?.toString(),
       checkoutImage: json['checkout_image']?.toString(),
       attendanceStatus: json['attendance_status']?.toString(),
-      status: json['status']?.toString(),
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      totalWorkHours: json['total_work_hours']?.toString(),
+      remarks: json['remarks']?.toString(),
+      created: _parseDateTime(json['created']),
+      modified: _parseDateTime(json['modified']),
     );
   }
 
@@ -137,25 +125,21 @@ class AttendanceModel extends Equatable {
       'id': id,
       'employee_id': employeeId,
       'attendance_date': attendanceDate,
-
       'checkin_time': checkinTime?.toIso8601String(),
       'checkin_latitude': checkinLatitude,
       'checkin_longitude': checkinLongitude,
       'checkin_image': checkinImage,
-
       'checkout_time': checkoutTime?.toIso8601String(),
       'checkout_latitude': checkoutLatitude,
       'checkout_longitude': checkoutLongitude,
       'checkout_image': checkoutImage,
-
       'attendance_status': attendanceStatus,
-      'status': status,
-
-      'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+      'total_work_hours': totalWorkHours,
+      'remarks': remarks,
+      'created': created?.toIso8601String(),
+      'modified': modified?.toIso8601String(),
     };
   }
-
 
   static DateTime? _parseDateTime(dynamic v) {
     if (v == null) return null;
@@ -184,6 +168,5 @@ class AttendanceModel extends Equatable {
         checkinTime,
         checkoutTime,
         attendanceStatus,
-        status,
       ];
 }

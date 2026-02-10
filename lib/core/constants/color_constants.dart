@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:flutter/material.dart';
+
 class COLORCONSTANTS {
   COLORCONSTANTS();
 
@@ -41,6 +43,41 @@ class COLORCONSTANTS {
     'cardBg': const Color(0xFF1E293B),
     'headerBg': const Color(0xFF1E293B),
   };
+
+
+  final presentColor = Color(0xFF4CAF50);
+  final absentColor = Color(0xFFEF5350);
+  final halfDayColor = Color(0xFFFF9800);
+  final leaveColor = Color(0xFF42A5F5);
+  final lateColor = Color(0xFFFFC107);
+  final inprogressColor = Color(0xFF667EEA);
+  final pendingColor = Color(0xFF6304F1);
+
+  final todayColor = Color(0xFFFF0000);
+  final selectedBorderColor = Color(0xFF667EEA);
+  final inactiveDayColor = Color(0xFFBDBDBD);
+  final weekendColor = Color(0xFFFF0000);
+
+  final currentMonthBg = Color(0xFFF0F4FF); 
+  final otherMonthBg = Colors.white;
+  final cardBorderColor = Color(0xFFE0E0E0);
+  final gridColor = Color(0xFFE8E8E8);
+
+  final textPrimary = Color(0xFF000000);
+  final textSecondary = Color(0xFF757575);
+  final textTertiary = Color(0xFF9E9E9E);
+  final textWeekend = Color(0xFFFF0000);
+  final double spacingXs = 4.0;
+  final double spacingS = 8.0;
+  final double spacingM = 12.0;
+  final double spacingL = 16.0;
+  final double spacingXl = 20.0;
+  final double spacingXxl = 24.0;
+  final double dayCircleSize = 48.0;
+  final double borderRadiusS = 4.0;
+  final double borderRadiusM = 8.0;
+  final double borderRadiusL = 12.0;
+
 
   Color getColor(String name, {bool isDark = false}) {
     final colors = isDark ? darkColors : lightColors;

@@ -50,8 +50,8 @@ class RouteConstants {
     },
     {
       'index': 3,
-      'path': RouteName.leave,
-      'icon': Constants.icon.setting,
+      'path': RouteName.leavelist,
+      'icon': Constants.icon.calander,
       'label': 'Leave',
     },
   ];

@@ -1,16 +1,14 @@
 part of 'attendances_bloc.dart';
 
-/// Status enum for attendance logs
-enum AttendancesStatus {
+enum AttendanceLogStatus {
   initial,
   loading,
   success,
   error,
 }
 
-/// Base state for attendance logs
 class AttendanceLogsState extends Equatable {
-  final AttendancesStatus status;
+  final AttendanceLogStatus status;
   final List<AttendanceModel> scheduleData;
   final DateTime currentDate;
   final int currentMonth;
@@ -30,11 +28,10 @@ class AttendanceLogsState extends Equatable {
     this.errorCode,
   });
 
-  /// Initial state factory
   factory AttendanceLogsState.initial() {
     final now = DateTime.now();
     return AttendanceLogsState(
-      status: AttendancesStatus.initial,
+      status: AttendanceLogStatus.initial,
       scheduleData: const [],
       currentDate: now,
       currentMonth: now.month,
@@ -54,9 +51,8 @@ class AttendanceLogsState extends Equatable {
         errorCode,
       ];
 
-  /// Copy with method for immutable state updates
   AttendanceLogsState copyWith({
-    AttendancesStatus? status,
+    AttendanceLogStatus? status,
     List<AttendanceModel>? scheduleData,
     DateTime? currentDate,
     int? currentMonth,
@@ -78,7 +74,6 @@ class AttendanceLogsState extends Equatable {
     );
   }
 
-  /// Get attendance data for a specific date
   AttendanceModel? getAttendanceForDate(DateTime date) {
     try {
       return scheduleData.firstWhere(

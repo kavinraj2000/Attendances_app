@@ -1,6 +1,5 @@
 part of 'attendances_bloc.dart';
 
-/// Base class for all attendance logs events
 abstract class AttendanceLogsEvent extends Equatable {
   const AttendanceLogsEvent();
 
@@ -8,7 +7,6 @@ abstract class AttendanceLogsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Event to load attendance logs for a specific month and year
 class LoadAttendanceLogs extends AttendanceLogsEvent {
   final int month;
   final int year;
@@ -22,7 +20,6 @@ class LoadAttendanceLogs extends AttendanceLogsEvent {
   List<Object?> get props => [month, year];
 }
 
-/// Event to select a specific date in the calendar
 class SelectDate extends AttendanceLogsEvent {
   final DateTime date;
 
@@ -32,7 +29,6 @@ class SelectDate extends AttendanceLogsEvent {
   List<Object?> get props => [date];
 }
 
-/// Event to change the displayed month
 class ChangeMonth extends AttendanceLogsEvent {
   final int month;
   final int year;

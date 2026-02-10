@@ -23,7 +23,6 @@ class AttendancesRepo {
     _setupInterceptors();
   }
 
-
   void _setupInterceptors() {
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -51,7 +50,6 @@ class AttendancesRepo {
       ),
     );
   }
-
 
   Future<List<AttendanceModel>> getAllAttendanceData() async {
     final user = await pref.getUserData();
@@ -83,16 +81,16 @@ class AttendancesRepo {
       );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        log.w(
+        log.d(
           'Attendance fetch failed | status: ${response.statusCode} | body: ${response.data}',
         );
-        return [];
+        return []; 
       }
 
       final data = response.data;
       if (data == null || data['data'] == null) {
         log.w('Attendance response data is empty');
-        return [];
+        return []; 
       }
 
       final List list = data['data'];

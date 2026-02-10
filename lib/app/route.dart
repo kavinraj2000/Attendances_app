@@ -6,7 +6,8 @@ import 'package:hrm/core/auth/view/auth_page.dart';
 import 'package:hrm/core/helper/navigation_helper.dart';
 import 'package:hrm/screens/attendances/view/attendance_view.dart';
 import 'package:hrm/screens/dashboard/dashboard_view.dart';
-import 'package:hrm/screens/leave_form/view/mobile/leave_form_mobile_view.dart';
+import 'package:hrm/screens/leave/leave_req_form/view/leave_req_form_view.dart';
+import 'package:hrm/screens/leave/leave_req_list/view/leave_req_list_view.dart';
 
 class Routes {
   late final GoRouter router;
@@ -44,16 +45,28 @@ class Routes {
           ),
         ),
         GoRoute(
-          name: RouteName.leave,
-          path: RouteName.leave,
+          name: RouteName.leavereq,
+          path: RouteName.leavereq,
           pageBuilder: (context, state) => NoTransitionPage(
             key: state.pageKey,
             child: NavigationHelper(
               currentRoute: state.matchedLocation,
-              child: LeaveRequestForm(),
+              child: LeaveReqFormView(),
             ),
           ),
         ),
+          GoRoute(
+          name: RouteName.leavelist,
+          path: RouteName.leavelist,
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: NavigationHelper(
+              currentRoute: state.matchedLocation,
+              child: LeaveReqListView(),
+            ),
+          ),
+        ),
+        
       ],
       redirect: (context, state) {
         final authState = context.read<AuthBloc>().state;
