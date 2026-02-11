@@ -1,10 +1,12 @@
 class LeaveRequestModel {
+  final int? id;
   final String leaveType;
   final DateTime startDate;
   final DateTime endDate;
   final String reason;
 
   const LeaveRequestModel({
+    this.id,
     required this.leaveType,
     required this.startDate,
     required this.endDate,
@@ -19,11 +21,13 @@ class LeaveRequestModel {
       startDate: DateTime.parse(data['start_date'] as String),
       endDate: DateTime.parse(data['end_date'] as String),
       reason: data['reason'] as String,
+      id: data['id'] 
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id':id,
       'leave_type': leaveType,
       'start_date': _formatDate(startDate),
       'end_date': _formatDate(endDate),
@@ -32,12 +36,14 @@ class LeaveRequestModel {
   }
 
   LeaveRequestModel copyWith({
+    int?id,
     String? leaveType,
     DateTime? startDate,
     DateTime? endDate,
     String? reason,
   }) {
     return LeaveRequestModel(
+      id: id ?? this.id,
       leaveType: leaveType ?? this.leaveType,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,

@@ -90,64 +90,7 @@ class LeaveReqListRepo {
     }
   }
 
-  Future<List<LeaveRequestModel>> updateleaverequest({
-    required int id,
-    required String leavetype,
-    required DateTime startdate,
-    required DateTime enddate,
-    required String reasons,
-  }) async {
-    final employeeId = await pref.getEmployeeId();
 
-    if (employeeId == null) {
-      throw Exception('User session expired. Please login again');
-    }
-
-    final payload = {
-      "requestname": "add_leave_request",
-      "data": {
-        "id": id,
-        "leave_type": leavetype,
-        "start_date": startdate,
-        "end_date": enddate,
-        "reason": reasons,
-      },
-    };
-
-    log.d('Leave list payload: $payload');
-
-    try {
-      final response = await dio.post(
-        Constants.api.getdata,
-        data: payload,
-        options: Options(
-          contentType: Headers.jsonContentType,
-          validateStatus: (_) => true,
-        ),
-      );
-
-      log.i('Leave list response code: ${response.statusCode}');
-      log.d('Leave list response body: ${response.data}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final List<dynamic> list = response.data['data'] ?? [];
-
-        return list
-            .map((e) => LeaveRequestModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-      }
-
-      final errorMessage =
-          response.data?['message'] ??
-          response.data?['error'] ??
-          'Failed to fetch leave list';
-
-      throw Exception(errorMessage);
-    } on DioException catch (e) {
-      log.e('Leave list API error', error: e);
-      throw _handleDioError(e, 'Failed to load leave requests');
-    }
-  }
 
   Exception _handleDioError(DioException error, String defaultMessage) {
     if (error.type == DioExceptionType.connectionTimeout ||

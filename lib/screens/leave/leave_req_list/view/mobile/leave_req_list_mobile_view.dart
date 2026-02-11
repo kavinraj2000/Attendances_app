@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/model/leave_list_model.dart';
 import 'package:hrm/screens/leave/leave_req_list/bloc/leave_req_list_bloc.dart';
 import 'package:intl/intl.dart';
 
 class LeaveRequestsListPage extends StatefulWidget {
-  const LeaveRequestsListPage({Key? key}) : super(key: key);
+  const LeaveRequestsListPage({super.key});
 
   @override
   State<LeaveRequestsListPage> createState() => _LeaveRequestsListPageState();
 }
 
 class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
-  @override
-  void initState() {
-    super.initState();
-    // Trigger the initial event to fetch leave requests
-    context.read<LeaveReqListBloc>().add(InitialLeaverequestListevent());
-  }
-
   Color getLeaveTypeColor(String type) {
     switch (type) {
       case 'CASUAL':
@@ -64,27 +59,17 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
 
   int getApprovedCount(List<LeaveRequestListModel> requests) =>
       requests.where((r) => r.status == 'APPROVED').length;
-  
+
   int getPendingCount(List<LeaveRequestListModel> requests) =>
       requests.where((r) => r.status == 'PENDING').length;
 
   void _onEditLeaveRequest(LeaveRequestListModel request) {
-    // TODO: Navigate to edit page or show edit dialog
-    // Example navigation:
-    // Navigator.pushNamed(
-    //   context,
-    //   '/edit-leave-request',
-    //   arguments: request,
-    // );
-    
-    // For now, show a snackbar
+    context.pushNamed(RouteName.leavereq, extra: request.id);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Edit leave request #${request.id}'),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
-        ),
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
       ),
     );
   }
@@ -92,212 +77,187 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF3E8FF),
-              Color(0xFFDEEDFF),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: BlocBuilder<LeaveReqListBloc, LeaveReqListState>(
-            builder: (context, state) {
-              // Show loading indicator
-              if (state.status == LeaveReqListStatus.loading) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: BlocBuilder<LeaveReqListBloc, LeaveReqListState>(
+          builder: (context, state) {
+            if (state.status == LeaveReqListStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              // Show error message
-              if (state.status == LeaveReqListStatus.failure) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red,
+            if (state.status == LeaveReqListStatus.failure) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading leave requests',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error loading leave requests',
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        state.message,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(
-                          state.message ?? 'Unknown error',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          context
-                              .read<LeaveReqListBloc>()
-                              .add(InitialLeaverequestListevent());
-                        },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              // Show leave requests list
-              final leaveRequests = state.leaveList;
-
-              if (leaveRequests.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.event_busy,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No leave requests found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return Column(
-                children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Leave Requests',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1F2937),
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Manage and track employee leave applications',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF6B7280),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.refresh),
-                              onPressed: () {
-                                context
-                                    .read<LeaveReqListBloc>()
-                                    .add(InitialLeaverequestListevent());
-                              },
-                              tooltip: 'Refresh',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Stats Cards
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                'Total',
-                                leaveRequests.length.toString(),
-                                Icons.calendar_today,
-                                const Color(0xFF8B5CF6),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                'Approved',
-                                getApprovedCount(leaveRequests).toString(),
-                                Icons.check_circle,
-                                Colors.green,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                'Pending',
-                                getPendingCount(leaveRequests).toString(),
-                                Icons.access_time,
-                                Colors.orange,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
-                  ),
-
-                  // Leave Requests List
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        context
-                            .read<LeaveReqListBloc>()
-                            .add(InitialLeaverequestListevent());
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<LeaveReqListBloc>().add(
+                          InitialLeaverequestListevent(),
+                        );
                       },
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: leaveRequests.length,
-                        itemBuilder: (context, index) {
-                          return _buildLeaveRequestCard(leaveRequests[index]);
-                        },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final leaveRequests = state.leaveList;
+
+            if (leaveRequests.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No leave requests found',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[600],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
-            },
-          ),
+            }
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Leave Requests',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh),
+                            onPressed: () {
+                              context.read<LeaveReqListBloc>().add(
+                                InitialLeaverequestListevent(),
+                              );
+                            },
+                            tooltip: 'Refresh',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              'Total',
+                              leaveRequests.length.toString(),
+                              Icons.calendar_today,
+                              const Color.fromARGB(255, 181, 2, 41),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Approved',
+                              getApprovedCount(leaveRequests).toString(),
+                              Icons.check_circle,
+                              Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Pending',
+                              getPendingCount(leaveRequests).toString(),
+                              Icons.access_time,
+                              Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Leave Requests List
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<LeaveReqListBloc>().add(
+                        InitialLeaverequestListevent(),
+                      );
+                    },
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: leaveRequests.length,
+                      itemBuilder: (context, index) {
+                        return _buildLeaveRequestCard(leaveRequests[index]);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildStatCard(
-      String label, String value, IconData icon, Color color) {
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: color, // ✅ single color per card
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -318,10 +278,7 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -329,12 +286,12 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
-              Icon(icon, color: color, size: 28),
+              Icon(icon, color: Colors.white, size: 28),
             ],
           ),
         ],
@@ -371,9 +328,9 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'ID',
-                    style: TextStyle(
+                  Text(
+                    request.totalDays == 1 ? 'day' : 'days',
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -381,7 +338,7 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    request.id.toString(),
+                    '${request.totalDays.toInt()} ',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -390,7 +347,7 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    request.leaveType,
+                    'leave',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 10,
@@ -454,12 +411,14 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                getStatusColor(request.status).withOpacity(0.1),
+                            color: getStatusColor(
+                              request.status,
+                            ).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: getStatusColor(request.status)
-                                  .withOpacity(0.3),
+                              color: getStatusColor(
+                                request.status,
+                              ).withOpacity(0.3),
                             ),
                           ),
                           child: Row(
@@ -487,7 +446,6 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
 
                     const SizedBox(height: 12),
 
-                    // Date and duration info
                     Row(
                       children: [
                         Icon(
@@ -506,19 +464,6 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: getLeaveTypeColor(request.leaveType),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${request.totalDays.toInt()} ${request.totalDays == 1 ? 'day' : 'days'}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
                       ],
                     ),
 
@@ -528,10 +473,7 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                         padding: const EdgeInsets.only(top: 12),
                         decoration: const BoxDecoration(
                           border: Border(
-                            top: BorderSide(
-                              color: Color(0xFFE5E7EB),
-                              width: 1,
-                            ),
+                            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
                           ),
                         ),
                         child: Text(

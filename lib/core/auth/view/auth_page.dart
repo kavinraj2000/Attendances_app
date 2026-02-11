@@ -12,8 +12,7 @@ class AuthPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          AuthBloc(AuthRepo(context.read<PreferencesRepository>()))
-            ..add(const CheckAuthStatus()),
+          AuthBloc(AuthRepo(context.read<PreferencesRepository>()))..add(CheckAuthStatus()),
       child: const AuthloginView(),
     );
   }

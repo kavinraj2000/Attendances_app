@@ -46,23 +46,24 @@ class LeaveFormRepository {
     );
   }
 
+  /// Creates a new leave request
   Future<LeaveRequestModel> leaverequest({
     required String leaveType,
-    required String reason, 
+    required String reason,
     required DateTime startdate,
     required DateTime enddate,
-    String? imageName,
   }) async {
     final user = await pref.getUserData();
     final id = await pref.getEmployeeId();
 
     if (user == null || id == null) {
-      throw Exception('User session expired. Please Auth again');
+      throw Exception('User session expired. Please login again');
     }
 
     final payload = {
       "requestname": "add_leave_request",
       "data": {
+        "employee_id": id,
         "leave_type": leaveType,
         "start_date": startdate.toIso8601String(),
         "end_date": enddate.toIso8601String(),
@@ -80,30 +81,101 @@ class LeaveFormRepository {
         ),
       );
 
-      log.i('request response: ${response.statusCode}');
-      log.d('request response data: ${response.data}');
+      log.i('Create leave request response: ${response.statusCode}');
+      log.d('Response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final attendance = LeaveRequestModel(
+        // Try to extract the created ID from response if available
+        final responseData = response.data;
+        final int? createdId = responseData is Map
+            ? (responseData['data']?['id'] ?? responseData['id'])
+            : null;
+
+        final leaveRequest = LeaveRequestModel(
+          id: createdId,
           endDate: enddate,
           leaveType: leaveType,
           startDate: startdate,
           reason: reason,
         );
 
-        return attendance;
+        return leaveRequest;
       }
 
       final errorMessage =
           response.data?['message'] ??
           response.data?['error'] ??
-          'request failed';
+          'Failed to create leave request';
       throw Exception(errorMessage);
     } on DioException catch (e) {
-      log.e('request API error', error: e);
-      throw _handleDioError(e, 'request failed');
+      log.e('Create leave request API error', error: e);
+      throw _handleDioError(e, 'Failed to create leave request');
     } catch (e) {
-      log.e('request error', error: e);
+      log.e('Create leave request error', error: e);
+      rethrow;
+    }
+  }
+
+  /// Updates an existing leave request
+  Future<LeaveRequestModel> updateLeaveRequest({
+    required int leaveRequestId,
+    required String leaveType,
+    required String reason,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final user = await pref.getUserData();
+    final employeeId = await pref.getEmployeeId();
+
+    if (user == null || employeeId == null) {
+      throw Exception('User session expired. Please login again');
+    }
+
+    final payload = {
+      "requestname": "add_leave_request",
+      "data": {
+        "id": leaveRequestId,
+        "leave_type": leaveType,
+        "start_date": startDate.toIso8601String(),
+        "end_date": endDate.toIso8601String(),
+        "reason": reason,
+      },
+    };
+    log.d('payload::$payload');
+
+    try {
+      final response = await dio.put(
+        Constants.api.editleaveREQUEST,
+        data: payload,
+        options: Options(
+          contentType: Headers.jsonContentType,
+          validateStatus: (_) => true,
+        ),
+      );
+
+      log.i('Update leave request response: ${response.statusCode}:::${response.realUri}');
+      log.d('Response data: ${response.data}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return LeaveRequestModel(
+          id: leaveRequestId,
+          leaveType: leaveType,
+          startDate: startDate,
+          endDate: endDate,
+          reason: reason,
+        );
+      }
+
+      final errorMessage =
+          response.data?['message'] ??
+          response.data?['error'] ??
+          'Failed to update leave request';
+      throw Exception(errorMessage);
+    } on DioException catch (e) {
+      log.e('Update leave request API error', error: e);
+      throw _handleDioError(e, 'Failed to update leave request');
+    } catch (e) {
+      log.e('Update leave request error', error: e);
       rethrow;
     }
   }
@@ -123,7 +195,7 @@ class LeaveFormRepository {
         "where": {"employee_id": user.employeeId.toString()},
       },
     };
- 
+
     try {
       final response = await dio.post(
         Constants.api.getdata,
@@ -133,7 +205,6 @@ class LeaveFormRepository {
           contentType: Headers.jsonContentType,
         ),
       );
-      
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         log.w('Failed to fetch attendance data: ${response.statusCode}');
@@ -151,7 +222,7 @@ class LeaveFormRepository {
     }
   }
 
-
+  /// Handles Dio errors and returns user-friendly exception messages
   Exception _handleDioError(DioException error, String defaultMessage) {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {

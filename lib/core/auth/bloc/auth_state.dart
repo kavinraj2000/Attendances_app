@@ -1,9 +1,10 @@
 part of 'auth_bloc.dart';
 
-
 enum AuthStatus {
   initial,
   loading,
+  otpsend,
+  otpverified,
   success,
   failure,
 }
@@ -11,72 +12,43 @@ enum AuthStatus {
 class AuthState extends Equatable {
   final AuthStatus status;
   final String email;
-  final String password;
+  final String otp;
   final bool isEmailValid;
-  final bool isPasswordValid;
   final String? message;
-  final LoginData? userData;
-  final String? token;
-  final int? userId;
 
   const AuthState({
     required this.status,
-    this.email = '',
-    this.password = '',
-    this.isEmailValid = false,
-    this.isPasswordValid = false,
+    required this.email,
+    required this.otp,
+    required this.isEmailValid,
     this.message,
-    this.userData,
-    this.token,
-    this.userId,
   });
 
   factory AuthState.initial() {
     return const AuthState(
       status: AuthStatus.initial,
       email: '',
-      password: '',
+      otp: '',
       isEmailValid: false,
-      isPasswordValid: false,
     );
   }
-
-  bool get isFormValid => isEmailValid && isPasswordValid;
 
   AuthState copyWith({
     AuthStatus? status,
     String? email,
-    String? password,
+    String? otp,
     bool? isEmailValid,
-    bool? isPasswordValid,
     String? message,
-    LoginData? userData,
-    String? token,
-    int? userId,
   }) {
     return AuthState(
       status: status ?? this.status,
       email: email ?? this.email,
-      password: password ?? this.password,
+      otp: otp ?? this.otp,
       isEmailValid: isEmailValid ?? this.isEmailValid,
-      isPasswordValid: isPasswordValid ?? this.isPasswordValid,
-      message: message ?? this.message,
-      userData: userData ?? this.userData,
-      token: token ?? this.token,
-      userId: userId ?? this.userId,
+      message: message,
     );
   }
 
   @override
-  List<Object?> get props => [
-        status,
-        email,
-        password,
-        isEmailValid,
-        isPasswordValid,
-        message,
-        userData,
-        token,
-        userId,
-      ];
+  List<Object?> get props => [status, email, otp, isEmailValid, message];
 }

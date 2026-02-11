@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
 import 'package:hrm/app/route_name.dart';
+import 'package:lottie/lottie.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
 
-/// Alternative version with simpler Lottie integration
-/// This version uses a fallback icon if Lottie file is not available
 class AuthloginView extends StatelessWidget {
   const AuthloginView({super.key});
 
@@ -24,6 +22,7 @@ class _AuthloginViewContent extends StatelessWidget {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
+          // Show snackbar for messages
           if (state.message != null && state.message!.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -31,10 +30,21 @@ class _AuthloginViewContent extends StatelessWidget {
                 backgroundColor: state.status == AuthStatus.failure
                     ? Colors.red
                     : Colors.green,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
 
+          // Navigate to OTP page when OTP is sent
+          if (state.status == AuthStatus.otpsend && state.email.isNotEmpty) {
+            // Use pushReplacement to prevent going back to login
+            context.goNamed(
+              RouteName.otp,
+              queryParameters: {'email': state.email},
+            );
+          }
+
+          // Navigate to dashboard on successful authentication
           if (state.status == AuthStatus.success) {
             context.goNamed(RouteName.dashboard);
           }
@@ -55,7 +65,6 @@ class _AuthloginViewContent extends StatelessWidget {
                     opacity: 0.2,
                     child: Lottie.asset(
                       'assets/lottie/background.json',
-
                       fit: BoxFit.cover,
                       repeat: true,
                       errorBuilder: (context, error, stackTrace) {
@@ -75,8 +84,6 @@ class _AuthloginViewContent extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // Main Content
                 SafeArea(
                   child: Center(
                     child: SingleChildScrollView(
@@ -121,10 +128,8 @@ class _AuthForm extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _LogoWidget(),
-
+          const _LogoWidget(),
           const SizedBox(height: 24),
-
           Text(
             'HRM System',
             textAlign: TextAlign.center,
@@ -133,32 +138,19 @@ class _AuthForm extends StatelessWidget {
               color: const Color(0xFF667eea),
             ),
           ),
-
           const SizedBox(height: 8),
           Text(
             'Sign in to continue',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[600], fontSize: 16),
           ),
-
           const SizedBox(height: 40),
-
           _EmailField(
             isLoading: isLoading,
             isEmailValid: state.isEmailValid,
             currentEmail: state.email,
           ),
-
-          const SizedBox(height: 16),
-
-          _PasswordField(
-            isLoading: isLoading,
-            isPasswordValid: state.isPasswordValid,
-            currentPassword: state.password,
-          ),
-
           const SizedBox(height: 32),
-
           _AuthButton(state: state),
         ],
       ),
@@ -175,7 +167,6 @@ class _LogoWidget extends StatelessWidget {
       height: 100,
       child: Lottie.asset(
         'assets/lottie/123.json',
-
         fit: BoxFit.contain,
         repeat: true,
         errorBuilder: (context, error, stackTrace) {
@@ -253,97 +244,11 @@ class _EmailFieldState extends State<_EmailField> {
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         errorText: _controller.text.isNotEmpty && !widget.isEmailValid
-            ? 'Enter valid email'
+            ? 'Enter a valid email'
             : null,
       ),
       onChanged: (value) {
         context.read<AuthBloc>().add(EmailChanged(value));
-      },
-    );
-  }
-}
-
-class _PasswordField extends StatefulWidget {
-  final bool isLoading;
-  final bool isPasswordValid;
-  final String currentPassword;
-
-  const _PasswordField({
-    required this.isLoading,
-    required this.isPasswordValid,
-    required this.currentPassword,
-  });
-
-  @override
-  State<_PasswordField> createState() => _PasswordFieldState();
-}
-
-class _PasswordFieldState extends State<_PasswordField> {
-  late final TextEditingController _controller;
-  bool _obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.currentPassword);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: _controller,
-      enabled: !widget.isLoading,
-      obscureText: _obscurePassword,
-      style: const TextStyle(fontSize: 16),
-      decoration: InputDecoration(
-        labelText: 'Password',
-        prefixIcon: const Icon(Icons.lock_outline),
-        filled: true,
-        fillColor: Colors.grey[50],
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
-          ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[200]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        errorText: _controller.text.isNotEmpty && !widget.isPasswordValid
-            ? 'Minimum 6 characters'
-            : null,
-      ),
-      onChanged: (value) {
-        context.read<AuthBloc>().add(PasswordChanged(value));
       },
     );
   }
@@ -357,37 +262,40 @@ class _AuthButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLoading = state.status == AuthStatus.loading;
-    final isFormValid = state.isEmailValid && state.isPasswordValid;
+    final isFormValid = state.isEmailValid && state.email.isNotEmpty;
 
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+        gradient: LinearGradient(
+          colors: isFormValid
+              ? [const Color(0xFF667eea), const Color(0xFF764ba2)]
+              : [Colors.grey[400]!, Colors.grey[500]!],
         ),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF667eea).withOpacity(0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: isFormValid
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF667eea).withOpacity(0.4),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : [],
       ),
       child: ElevatedButton(
         onPressed: isLoading || !isFormValid
             ? null
             : () {
                 context.read<AuthBloc>().add(
-                  AuthSubmitted(
-                    email: state.email.trim(),
-                    password: state.password,
-                  ),
+                  AuthSubmitted(email: state.email.trim()),
                 );
+                context.goNamed(RouteName.otp);
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
+          disabledBackgroundColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -402,7 +310,7 @@ class _AuthButton extends StatelessWidget {
                 ),
               )
             : const Text(
-                'Login',
+                'Send OTP',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

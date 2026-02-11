@@ -13,14 +13,11 @@ class AuthRepo {
   final PreferencesRepository pref;
   AuthRepo(this.pref);
 
-  Future<LoginModel> requestAuth({
-    required String email,
-    required String password,
-  }) async {
+  Future<LoginModel> requestAuth({required String email}) async {
     try {
       final baseapi = Api.baseUrl;
       log.d('requestAuth:baseapi:$baseapi');
-      final url = baseapi + Constants.api.verifyemail;
+      final url = baseapi + Constants.api.verifyEMAIL;
       log.d('requestAuth:url:$url');
 
       final response = await http.post(
@@ -30,12 +27,63 @@ class AuthRepo {
           'Accept': 'application/json',
         },
         body: jsonEncode({
-          "requestname": "verify_email",
-          "data": {"email": email, "password": password},
+          "requestname": "verify_otp",
+          "data": {"email": email},
         }),
       );
 
       log.d('requestAuth:response:${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final AuthModel = LoginModel.fromJson(data);
+
+       
+        return AuthModel;
+      } else if (response.statusCode == 401) {
+        throw Exception('Invalid email or password');
+      } else if (response.statusCode == 404) {
+        throw Exception('Auth endpoint not found');
+      } else if (response.statusCode == 500) {
+        throw Exception('Server error. Please try again later');
+      } else {
+        throw Exception('Auth failed: ${response.statusCode}');
+      }
+    } on http.ClientException catch (e) {
+      throw Exception('Network error: ${e.message}');
+    } on FormatException catch (e) {
+      throw Exception('Invalid response format: ${e.message}');
+    } catch (e) {
+      throw Exception('Auth failed: ${e.toString()}');
+    }
+  }
+
+Future<LoginModel> verfifyOTP({
+  required String email,
+  required String otp, // Changed from int to String
+}) async {
+  try {
+    final baseapi = Api.baseUrl;
+    log.d('verfifyOTP:baseapi:$baseapi');
+    final url = baseapi + Constants.api.otpCHECK;
+    log.d('verfifyOTP:url:$url');
+    log.d('verfifyOTP:email:$email'); // Add this for debugging
+    log.d('verfifyOTP:otp:$otp'); // Add this for debugging
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        "requestname": "verify_otp",
+        "data": {"email": email, "otp": otp}, // Now sending as string
+      }),
+    );
+
+    log.d('verfifyOTP:response:${response.body}');
+    // ... rest of the code
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

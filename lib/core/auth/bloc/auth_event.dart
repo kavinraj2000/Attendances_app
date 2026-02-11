@@ -7,7 +7,6 @@ abstract class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-
 class EmailChanged extends AuthEvent {
   final String email;
 
@@ -28,12 +27,11 @@ class PasswordChanged extends AuthEvent {
 
 class AuthSubmitted extends AuthEvent {
   final String email;
-  final String password;
 
-  const AuthSubmitted({required this.email, required this.password});
+  const AuthSubmitted({required this.email});
 
   @override
-  List<Object?> get props => [email, password];
+  List<Object?> get props => [email];
 }
 
 class CheckAuthStatus extends AuthEvent {
@@ -46,4 +44,34 @@ class LogoutRequested extends AuthEvent {
 
 class RefreshUserData extends AuthEvent {
   const RefreshUserData();
+}
+
+
+
+class OtpChanged extends AuthEvent {
+  final String otp;
+
+  const OtpChanged(this.otp);
+
+  @override
+  List<Object?> get props => [otp];
+}
+
+class OtpSubmitted extends AuthEvent {
+  final String email;
+  final int? otp;
+
+  const OtpSubmitted({ this.otp, required this.email});
+
+  @override
+  List<Object?> get props => [otp];
+}
+
+class ResendOtp extends AuthEvent {
+  final String email;
+
+  const ResendOtp({required this.email});
+
+  @override
+  List<Object?> get props => [email];
 }

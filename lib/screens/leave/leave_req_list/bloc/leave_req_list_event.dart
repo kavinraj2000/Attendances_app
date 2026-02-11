@@ -4,8 +4,4 @@ abstract class LeaveReqListEvent {}
 
 class InitialLeaverequestListevent extends LeaveReqListEvent {}
 
-class Updateleaverequestevent extends LeaveReqListEvent {
-  final LeaveRequestModel leaveRequestModel;
 
-  Updateleaverequestevent(this.leaveRequestModel);
-}

@@ -23,6 +23,7 @@ class LeaveReqListBloc extends Bloc<LeaveReqListEvent, LeaveReqListState> {
   ) async {
     try {
       emit(state.copyWith(status: LeaveReqListStatus.loading));
+      
 
       final leaveList = await repo.leaverequest();
       log.d('Leave list loaded: ${leaveList.length}');
@@ -45,15 +46,5 @@ class LeaveReqListBloc extends Bloc<LeaveReqListEvent, LeaveReqListState> {
     }
   }
 
-  // Future<void>_onupdateLeaveList(Updateleaverequestevent event,Emitter<LeaveReqListState>emit)async{
-  //   try{
-  //     emit(state.copyWith(status:LeaveReqListStatus.loading ));
-
-  //     final update=await repo.updateleaverequest(id: event.leaveRequestModel., leavetype: leavetype, startdate: startdate, enddate: enddate, reasons: reasons)
-
-  //   }
-  //   catch(e){
-
-  //   }
-  // }
+ 
 }
