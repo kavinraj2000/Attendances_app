@@ -7,6 +7,7 @@ enum AuthStatus {
   otpverified,
   success,
   failure,
+  loaded,
 }
 
 class AuthState extends Equatable {

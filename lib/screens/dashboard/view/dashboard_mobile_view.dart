@@ -1,44 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
+import 'package:hrm/core/util/toast_util.dart';
+import 'package:hrm/core/widgets/greeting_widget.dart' as GreetingData;
 import 'package:hrm/screens/dashboard/bloc/dashboard_bloc.dart';
 import 'package:intl/intl.dart';
 
-/// Design tokens and constants
-class _DashboardConstants {
-  // Colors
-  static const primaryGradientStart = Color(0xFF667EEA);
-  static const primaryGradientEnd = Color(0xFF764BA2);
-  static const checkOutGradientStart = Color(0xFFFF6B6B);
-  static const checkOutGradientEnd = Color(0xFFEE5A6F);
-  static const textPrimary = Color(0xFF1A1A1A);
-  static const textSecondary = Color(0xFF757575);
-  static const textTertiary = Color(0xFF9E9E9E);
-  static const surfaceWhite = Color(0xFFFAFAFA);
-  static const dividerColor = Color(0xFFE0E0E0);
 
-  // Spacing
-  static const double spacingXs = 4.0;
-  static const double spacingS = 8.0;
-  static const double spacingM = 16.0;
-  static const double spacingL = 24.0;
-  static const double spacingXl = 32.0;
-  static const double spacingXxl = 40.0;
-
-  // Sizes
-  static const double avatarRadius = 24.0;
-  static const double checkInButtonSize = 200.0;
-  static const double checkInButtonElevation = 20.0;
-  static const double borderRadiusM = 12.0;
-  static const double borderRadiusL = 16.0;
-
-  // Typography
-  static const double fontSizeXl = 64.0;
-  static const double fontSizeL = 20.0;
-  static const double fontSizeM = 16.0;
-  static const double fontSizeS = 14.0;
-  static const double fontSizeXs = 13.0;
-}
 
 class DashboardMobileView extends StatefulWidget {
   const DashboardMobileView({super.key});
@@ -51,13 +20,17 @@ class _DashboardMobileViewState extends State<DashboardMobileView>
     with SingleTickerProviderStateMixin {
   String _userName = '';
   late AnimationController _pulseController;
+  CheckInStatus? _previousCheckInStatus;
 
   @override
   void initState() {
     super.initState();
     context.read<DashboardBloc>().add(InitializeDashboard());
     _loadUserName();
-    _initializeAnimations();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -66,64 +39,57 @@ class _DashboardMobileViewState extends State<DashboardMobileView>
     super.dispose();
   }
 
-  void _initializeAnimations() {
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-  }
-
   Future<void> _loadUserName() async {
     final pref = PreferencesRepository();
     final name = await pref.getUsername();
     if (mounted) {
-      setState(() {
-        _userName = name ?? '';
-      });
+      setState(() => _userName = name ?? '');
     }
   }
 
+void _handleCheckInStatusChange(BuildContext context, DashboardState state) {
+  if (state.loadingStatus == DashboardLoadingStatus.success &&
+      _previousCheckInStatus != state.checkInStatus) {
+    final newStatus = state.checkInStatus; 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (newStatus == CheckInStatus.checkedIn) {
+        ToastUtil.checkIn(context: context);
+      } else if (newStatus == CheckInStatus.checkedOut) {
+        ToastUtil.checkOut(context: context);
+      }
+    });
+  }
+  _previousCheckInStatus = state.checkInStatus;
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _DashboardConstants.surfaceWhite,
+      backgroundColor: Constants.color.surfaceWhite,
       body: SafeArea(
         child: BlocBuilder<DashboardBloc, DashboardState>(
           builder: (context, state) {
-            if (state.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _DashboardConstants.primaryGradientStart,
-                  ),
-                ),
-              );
-            }
-
+            _handleCheckInStatusChange(context, state);
             return RefreshIndicator(
-              color: _DashboardConstants.primaryGradientStart,
+              color: Constants.color.leaveColor,
               onRefresh: () async {
                 context.read<DashboardBloc>().add(RefreshDashboardData());
-                await Future.delayed(const Duration(milliseconds: 500));
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _DashboardConstants.spacingL,
-                  ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: _DashboardConstants.spacingXl),
-                      _buildUserHeader(),
-                      const SizedBox(height: _DashboardConstants.spacingXxl),
-                      _buildDateTimeCard(),
-                      const SizedBox(height: _DashboardConstants.spacingXxl),
-                      _buildAttendanceSection(state),
-                      const SizedBox(height: _DashboardConstants.spacingXl),
-                      const SizedBox(height: _DashboardConstants.spacingXxl),
-                    ],
-                  ),
+                padding:  EdgeInsets.symmetric(
+                  horizontal: Constants.app.spacingL,
+                ),
+                child: Column(
+                  children: [
+                     SizedBox(height: Constants.app.spacingL),
+                    _buildGreetingCard(),
+                     SizedBox(height: Constants.app.spacingL),
+                    _buildDateTimeCard(state),
+                     SizedBox(height: Constants.app.spacingL),
+                    _buildAttendanceSection(state),
+                     SizedBox(height: Constants.app.spacingXxl),
+                  ],
                 ),
               ),
             );
@@ -133,290 +99,518 @@ class _DashboardMobileViewState extends State<DashboardMobileView>
     );
   }
 
-  /* ---------------- USER HEADER ---------------- */
+  Widget _buildGreetingCard() {
+    final greetingData = GreetingData.getGreetingData();
 
-  Widget _buildUserHeader() {
     return Container(
-      padding: const EdgeInsets.all(_DashboardConstants.spacingM),
+      padding:  EdgeInsets.all(Constants.app.spacingL),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_DashboardConstants.borderRadiusL),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [
-                  _DashboardConstants.primaryGradientStart,
-                  _DashboardConstants.primaryGradientEnd,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _DashboardConstants.primaryGradientStart.withOpacity(
-                    0.3,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: _DashboardConstants.avatarRadius,
-              backgroundColor: Colors.transparent,
-              child: Text(
-                _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: _DashboardConstants.spacingM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Welcome back,',
-                  style: TextStyle(
-                    fontSize: _DashboardConstants.fontSizeXs,
-                    color: _DashboardConstants.textTertiary,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _userName.isNotEmpty ? _userName : 'Guest',
-                  style: const TextStyle(
-                    fontSize: _DashboardConstants.fontSizeL,
-                    fontWeight: FontWeight.w600,
-                    color: _DashboardConstants.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            color: _DashboardConstants.textSecondary,
-            onPressed: () {
-              // Navigate to notifications
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  /* ---------------- DATE & TIME CARD ---------------- */
-
-  Widget _buildDateTimeCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: _DashboardConstants.spacingXl,
-        horizontal: _DashboardConstants.spacingL,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            _DashboardConstants.primaryGradientStart,
-            _DashboardConstants.primaryGradientEnd,
-          ],
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: [
+            const Color.fromARGB(255, 3, 111, 200),
+            const Color.fromARGB(255, 60, 161, 243),
+            const Color.fromARGB(255, 143, 196, 240),
+          ],
         ),
-        borderRadius: BorderRadius.circular(_DashboardConstants.borderRadiusL),
-        boxShadow: [
-          BoxShadow(
-            color: _DashboardConstants.primaryGradientStart.withOpacity(0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+        borderRadius: BorderRadius.circular(Constants.app.borderRadiusXl),
+       
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -10,
+            bottom: -30,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.08),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          greetingData.text,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.white.withOpacity(0.95),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Image.asset(greetingData.image, height: 20, width: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _userName.isNotEmpty ? _userName : 'Guest',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+           
+            ],
           ),
         ],
       ),
-      child: StreamBuilder(
-        stream: Stream.periodic(const Duration(seconds: 1)),
-        builder: (context, snapshot) {
-          final now = DateTime.now();
-          return Column(
-            children: [
-              Text(
-                DateFormat('HH:mm:ss').format(now),
-                style: const TextStyle(
-                  fontSize: _DashboardConstants.fontSizeXl,
-                  fontWeight: FontWeight.w200,
-                  color: Colors.white,
-                  letterSpacing: -1,
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(height: _DashboardConstants.spacingS),
-              Text(
-                DateFormat('EEEE, MMMM dd, yyyy').format(now),
-                style: TextStyle(
-                  fontSize: _DashboardConstants.fontSizeM,
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w400,
-                ),
+    );
+  }
+
+  Widget _buildDateTimeCard(DashboardState state) {
+    return StreamBuilder(
+      stream: Stream.periodic(const Duration(seconds: 1)),
+      builder: (_, __) {
+        final now = DateTime.now();
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, const Color(0xFFF5F7FA)],
+            ),
+            borderRadius: BorderRadius.circular(
+              Constants.app.borderRadiusXl,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 25,
+                offset: const Offset(0, 8),
+                spreadRadius: -5,
               ),
             ],
-          );
-        },
-      ),
-    );
-  }
-
-  /* ---------------- ATTENDANCE SECTION ---------------- */
-
-  Widget _buildAttendanceSection(DashboardState state) {
-    final isCheckedIn = state.checkInStatus == CheckInStatus.checkedIn;
-    final isLoading = state.loadingStatus == DashboardLoadingStatus.loading;
-
-    return Column(
-      children: [
-        Text(
-          isCheckedIn ? 'You\'re checked in' : 'Ready to start?',
-          style: const TextStyle(
-            fontSize: _DashboardConstants.fontSizeL,
-            fontWeight: FontWeight.w600,
-            color: _DashboardConstants.textPrimary,
+            border: Border.all(color: Colors.white, width: 2),
           ),
-        ),
-        const SizedBox(height: _DashboardConstants.spacingM),
-        _buildCheckInButton(isCheckedIn, isLoading),
-        const SizedBox(height: _DashboardConstants.spacingL),
-        _buildLocationInfo(),
-      ],
-    );
-  }
-
-  Widget _buildCheckInButton(bool isCheckedIn, bool isLoading) {
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (context, child) {
-        return GestureDetector(
-          onTap: isLoading
-              ? null
-              : () {
-                  context.read<DashboardBloc>().add(
-                    isCheckedIn ? CheckOut() : CheckIn(),
-                  );
-                },
-          child: Container(
-            width: _DashboardConstants.checkInButtonSize,
-            height: _DashboardConstants.checkInButtonSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: isCheckedIn
-                    ? [
-                        _DashboardConstants.checkOutGradientStart,
-                        _DashboardConstants.checkOutGradientEnd,
-                      ]
-                    : [
-                        _DashboardConstants.primaryGradientStart,
-                        _DashboardConstants.primaryGradientEnd,
+          child: Stack(
+            children: [
+              Positioned(
+                right: -40,
+                top: -40,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Constants.color.accentTeal.withOpacity(0.08),
+                        Constants.color.accentTeal.withOpacity(0.0),
                       ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color:
-                      (isCheckedIn
-                              ? _DashboardConstants.checkOutGradientStart
-                              : _DashboardConstants.primaryGradientStart)
-                          .withOpacity(0.4),
-                  blurRadius: 25 + (_pulseController.value * 5),
-                  offset: const Offset(
-                    0,
-                    _DashboardConstants.checkInButtonElevation,
-                  ),
-                  spreadRadius: _pulseController.value * 2,
-                ),
-              ],
-            ),
-            child: isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
                     ),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isCheckedIn
-                            ? Icons.logout_rounded
-                            : Icons.login_rounded,
-                        size: 40,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: _DashboardConstants.spacingS),
-                      Text(
-                        isCheckedIn ? 'CHECK OUT' : 'CHECK IN',
-                        style: const TextStyle(
-                          fontSize: _DashboardConstants.fontSizeM,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
                   ),
+                ),
+              ),
+              Positioned(
+                left: -30,
+                bottom: -30,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Constants.color.accentOrange.withOpacity(0.08),
+                        Constants.color.accentOrange.withOpacity(0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Column(
+                children: [
+                  Padding(
+                    padding:  EdgeInsets.all(Constants.app.spacingL),
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildDateSection(now)),
+                        Container(
+                          width: 1,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Constants.color.dividerColor,
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                        Expanded(child: _buildTimeSection(now)),
+                      ],
+                    ),
+                  ),
+
+                  Container(
+                    height: 1,
+                    margin:  EdgeInsets.symmetric(
+                      horizontal: Constants.app.spacingL,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Constants.color.dividerColor.withOpacity(0.5),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  Padding(
+                    padding:  EdgeInsets.all(Constants.app.spacingL),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildAttendanceInfo(
+                            label: 'Check In',
+                            time: state.checkInTimeFormatted ?? '--:--',
+                            color: const Color(0xFF10B981),
+                          ),
+                        ),
+                         SizedBox(width: Constants.app.spacingM),
+                        Expanded(
+                          child: _buildAttendanceInfo(
+                            label: 'Check Out',
+                            time: state.checkOutTimeFormatted ?? '--:--',
+                            color: const Color(0xFFEF4444),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildLocationInfo() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: _DashboardConstants.spacingM,
-        vertical: _DashboardConstants.spacingS,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_DashboardConstants.borderRadiusM),
-        border: Border.all(color: _DashboardConstants.dividerColor, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.location_on,
-            size: 18,
-            color: _DashboardConstants.primaryGradientStart,
+  Widget _buildDateSection(DateTime now) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Constants.color.accentPurple.withOpacity(0.15),
+                Constants.color.accentPurple.withOpacity(0.08),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(width: _DashboardConstants.spacingS),
-          const Text(
-            'Central Building Office',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: Constants.color.accentPurple,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                DateFormat('EEEE').format(now).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Constants.color.accentPurple,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          DateFormat('dd').format(now),
+          style: TextStyle(
+            fontSize: 56,
+            color: Constants.color.textPrimary,
+            fontWeight: FontWeight.w800,
+            height: 1,
+            letterSpacing: -2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          DateFormat('MMM yyyy').format(now),
+          style: TextStyle(
+            fontSize: 16,
+            color: Constants.color.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeSection(DateTime now) {
+    return Column(
+      children: [
+        Text(
+          DateFormat('HH:mm').format(now),
+          style: TextStyle(
+            fontSize: 56,
+            color: Constants.color.textPrimary,
+            fontWeight: FontWeight.w800,
+            height: 1,
+            letterSpacing: -2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${DateFormat('ss').format(now)} sec',
+          style: TextStyle(
+            fontSize: 16,
+            color: Constants.color.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAttendanceInfo({
+    required String label,
+    required String time,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Constants.app.borderRadiusM),
+        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
             style: TextStyle(
-              fontSize: _DashboardConstants.fontSizeS,
-              color: _DashboardConstants.textSecondary,
-              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              color: Constants.color.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 18,
+              color: Constants.color.textPrimary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAttendanceSection(DashboardState state) {
+    final isCheckedIn = state.checkInStatus == CheckInStatus.checkedIn;
+    return Container(
+      padding:  EdgeInsets.all(Constants.app.spacingXl),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            isCheckedIn ? const Color(0xFFFFEBEE) : const Color(0xFFF3F0FF),
+            isCheckedIn ? const Color(0xFFFFF5F5) : const Color(0xFFF8F7FF),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(Constants.app.borderRadiusXl),
+        boxShadow: [
+          BoxShadow(
+            color:
+                (isCheckedIn
+                        ? Constants.color.checkOutGradientStart
+                        : Constants.color.accentPurple)
+                    .withOpacity(0.15),
+            blurRadius: 25,
+            offset: const Offset(0, 8),
+            spreadRadius: -5,
+          ),
+        ],
+        border: Border.all(
+          color: isCheckedIn
+              ? Constants.color.checkOutGradientStart.withOpacity(0.2)
+              : Constants.color.accentPurple.withOpacity(0.2),
+          width: 2,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Background decoration
+          Positioned(
+            right: -50,
+            bottom: -50,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    (isCheckedIn
+                            ? Constants.color.checkOutGradientStart
+                            : Constants.color.accentPurple)
+                        .withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          Column(
+            children: [
+              Text(
+                isCheckedIn ? 'You\'re Checked In' : 'Ready to Start Your Day?',
+                style: TextStyle(
+                  fontSize: Constants.app.fontSizeL,
+                  fontWeight: FontWeight.w700,
+                  color: Constants.color.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isCheckedIn
+                    ? 'Tap to check out when you\'re done'
+                    : 'Tap the button below to check in',
+                style: TextStyle(
+                  fontSize: Constants.app.fontSizeS,
+                  color: Constants.color.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+               SizedBox(height: Constants.app.spacingXl),
+              _buildCheckInButton(isCheckedIn, state.isLoading),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheckInButton(bool isCheckedIn, bool isLoading) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (_, __) {
+        final gradientColors = isCheckedIn
+            ? [
+                Constants.color.checkOutGradientStart,
+                Constants.color.checkOutGradientEnd,
+              ]
+            : [Constants.color.accentPurple, const Color(0xFF8B7FFF)];
+
+        return GestureDetector(
+          onTap: isLoading
+              ? null
+              : () => context.read<DashboardBloc>().add(
+                  isCheckedIn ? CheckOut() : CheckIn(),
+                ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: Constants.app.checkInButtonSize + 20,
+                height: Constants.app.checkInButtonSize + 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      gradientColors[0].withOpacity(0.0),
+                      gradientColors[0].withOpacity(
+                        0.15 + _pulseController.value * 0.1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Main Button
+              Container(
+                width: Constants.app.checkInButtonSize,
+                height: Constants.app.checkInButtonSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradientColors,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradientColors[0].withOpacity(0.5),
+                      blurRadius: 30 + _pulseController.value * 10,
+                      spreadRadius: _pulseController.value * 5,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isCheckedIn ? 'CHECK OUT' : 'CHECK IN',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

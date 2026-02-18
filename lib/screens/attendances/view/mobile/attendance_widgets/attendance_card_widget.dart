@@ -7,10 +7,10 @@ class AttendanceLegendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(Constants.color.spacingL),
+      padding: EdgeInsets.all(Constants.app.spacingL),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(Constants.color.borderRadiusM),
+        borderRadius: BorderRadius.circular(Constants.app.borderRadiusM),
         border: Border.all(color: Constants.color.cardBorderColor),
       ),
       child: Column(

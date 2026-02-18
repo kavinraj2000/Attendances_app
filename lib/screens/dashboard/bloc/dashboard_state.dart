@@ -1,147 +1,123 @@
 part of 'dashboard_bloc.dart';
 
-enum DashboardLoadingStatus { initial, loading, success, failure }
-enum CheckInStatus { checkedIn, notCheckedIn }
+enum CheckInStatus { checkedIn, checkedOut, notCheckedIn }
+
+enum DashboardLoadingStatus { initial, loading,loaded, success, failure }
 
 class DashboardState extends Equatable {
-  final DashboardLoadingStatus loadingStatus;
+  final List<AttendanceModel> attendanceList;
   final CheckInStatus checkInStatus;
   final DateTime? checkInTime;
   final DateTime? checkOutTime;
-  final List<AttendanceModel> attendanceList;
-  final String? errorMessage;
   final DateTime selectedDate;
   final DateTime focusedMonth;
-  final Map<DateTime, List<String>> events; 
+  final DashboardLoadingStatus loadingStatus;
+  final String? errorMessage;
+  final bool isLoading; 
 
-   DashboardState({
-    required this.loadingStatus,
+  const DashboardState({
+    required this.attendanceList,
     required this.checkInStatus,
     this.checkInTime,
     this.checkOutTime,
-    this.attendanceList = const [],
+    required this.selectedDate,
+    required this.focusedMonth,
+    required this.loadingStatus,
     this.errorMessage,
-    DateTime? selectedDate,
-    DateTime? focusedMonth,
-    this.events = const {},
-  })  : selectedDate = selectedDate ?? DateTime(2024, 1, 1),
-        focusedMonth = focusedMonth ?? DateTime(2024, 1, 1);
+    this.isLoading = false,
+  });
 
   factory DashboardState.initial() {
     final now = DateTime.now();
     return DashboardState(
-      loadingStatus: DashboardLoadingStatus.initial,
+      attendanceList: const [],
       checkInStatus: CheckInStatus.notCheckedIn,
+      checkInTime: null,
+      checkOutTime: null,
       selectedDate: now,
-      focusedMonth: DateTime(now.year, now.month, 1),
+      focusedMonth: now,
+      loadingStatus: DashboardLoadingStatus.initial,
+      errorMessage: null,
+      isLoading: false,
     );
   }
 
-  List<AttendanceModel> getEventsForDate(DateTime date) {
-    return attendanceList.where((attendance) {
-      if (attendance.checkinTime == null) return false;
-      final attendanceDate = attendance.checkinTime!;
-      return attendanceDate.year == date.year &&
-          attendanceDate.month == date.month &&
-          attendanceDate.day == date.day;
-    }).toList();
+  // Helper getters for formatting
+  String? get checkInTimeFormatted {
+    if (checkInTime == null) return null;
+    return DateFormat('hh:mm a').format(checkInTime!);
   }
 
-  double get totalHoursWorked {
-    double total = 0;
-    for (var attendance in attendanceList) {
-      if (attendance.checkinTime != null && attendance.checkoutTime != null) {
-        final duration = attendance.checkoutTime!.difference(attendance.checkinTime!);
-        total += duration.inMinutes / 60;
-      }
-    }
-    return total;
+  String? get checkOutTimeFormatted {
+    if (checkOutTime == null) return null;
+    return DateFormat('hh:mm a').format(checkOutTime!);
   }
 
-  double get todayHoursWorked {
-    final today = DateTime.now();
-    final todayAttendance = attendanceList.where((attendance) {
-      if (attendance.checkinTime == null) return false;
-      final date = attendance.checkinTime!;
-      return date.year == today.year &&
-          date.month == today.month &&
-          date.day == today.day;
-    }).toList();
-
-    if (todayAttendance.isEmpty) return 0;
-
-    final attendance = todayAttendance.first;
-    if (attendance.checkinTime == null) return 0;
-
-    final endTime = attendance.checkoutTime ?? DateTime.now();
-    final duration = endTime.difference(attendance.checkinTime!);
-    return duration.inMinutes / 60;
-  }
-
-  double get weekAttendanceRate {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+  String get totalWorkingHours {
+    if (checkInTime == null) return '00h 00m hrs';
     
-    int workDays = 0;
-    int attendedDays = 0;
-
-    for (int i = 0; i < 7; i++) {
-      final day = startOfWeek.add(Duration(days: i));
-      if (day.weekday != DateTime.saturday && day.weekday != DateTime.sunday) {
-        workDays++;
-        final hasAttendance = attendanceList.any((attendance) {
-          if (attendance.checkinTime == null) return false;
-          final date = attendance.checkinTime!;
-          return date.year == day.year &&
-              date.month == day.month &&
-              date.day == day.day;
-        });
-        if (hasAttendance) attendedDays++;
-      }
-    }
-
-    return workDays > 0 ? attendedDays / workDays : 0;
+    final endTime = checkOutTime ?? DateTime.now();
+    final duration = endTime.difference(checkInTime!);
+    
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    
+    return '${hours.toString().padLeft(2, '0')}h ${minutes.toString().padLeft(2, '0')}m hrs';
   }
 
-  bool get isLoading => loadingStatus == DashboardLoadingStatus.loading;
+  String get extraWorkingHours {
+    if (checkInTime == null) return '-- hrs';
+    
+    final endTime = checkOutTime ?? DateTime.now();
+    final duration = endTime.difference(checkInTime!);
+    
+    // Assuming 8 hours is standard working time
+    const standardHours = 8;
+    final totalHours = duration.inHours;
+    
+    if (totalHours <= standardHours) return '-- hrs';
+    
+    final extraHours = totalHours - standardHours;
+    return '$extraHours hrs';
+  }
 
   DashboardState copyWith({
-    DashboardLoadingStatus? loadingStatus,
+    List<AttendanceModel>? attendanceList,
     CheckInStatus? checkInStatus,
     DateTime? checkInTime,
     DateTime? checkOutTime,
-    List<AttendanceModel>? attendanceList,
-    String? errorMessage,
     DateTime? selectedDate,
     DateTime? focusedMonth,
-    Map<DateTime, List<String>>? events,
-    bool clearError = false,
+    DashboardLoadingStatus? loadingStatus,
+    String? errorMessage,
+    bool? isLoading,
     bool clearCheckInTime = false,
     bool clearCheckOutTime = false,
+    bool clearError = false,
   }) {
     return DashboardState(
-      loadingStatus: loadingStatus ?? this.loadingStatus,
+      attendanceList: attendanceList ?? this.attendanceList,
       checkInStatus: checkInStatus ?? this.checkInStatus,
       checkInTime: clearCheckInTime ? null : (checkInTime ?? this.checkInTime),
       checkOutTime: clearCheckOutTime ? null : (checkOutTime ?? this.checkOutTime),
-      attendanceList: attendanceList ?? this.attendanceList,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       selectedDate: selectedDate ?? this.selectedDate,
       focusedMonth: focusedMonth ?? this.focusedMonth,
-      events: events ?? this.events,
+      loadingStatus: loadingStatus ?? this.loadingStatus,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 
   @override
   List<Object?> get props => [
-        loadingStatus,
+        attendanceList,
         checkInStatus,
         checkInTime,
         checkOutTime,
-        attendanceList,
-        errorMessage,
         selectedDate,
         focusedMonth,
-        events,
+        loadingStatus,
+        errorMessage,
+        isLoading,
       ];
 }

@@ -52,25 +52,25 @@ class AttendancesRepo {
   }
 
   Future<List<AttendanceModel>> getAllAttendanceData() async {
-    final user = await pref.getUserData();
-
-    if (user == null || user.employeeId == null) {
-      log.w('User not logged in');
-      return [];
-    }
-
-    final payload = {
-      "requestname": "data_read",
-      "data": {
-        "tablename": "attendance_details",
-        "columns": [],
-        "where": {
-          "employee_id": user.employeeId.toString(),
-        },
-      },
-    };
-
     try {
+      final user = await pref.getUserData();
+
+      if (user == null || user.employeeId == null) {
+        log.w('User not logged in');
+        throw Exception('Session expired. Please login again');
+      }
+
+      final payload = {
+        "requestname": "data_read",
+        "data": {
+          "tablename": "attendance_details",
+          "columns": [],
+          "where": {
+            "employee_id": user.employeeId.toString(),
+          },
+        },
+      };
+
       final response = await dio.post(
         Constants.api.getdata,
         data: payload,
@@ -80,11 +80,15 @@ class AttendancesRepo {
         ),
       );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
         log.d(
           'Attendance fetch failed | status: ${response.statusCode} | body: ${response.data}',
         );
-        return []; 
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        
+        final errorMessage = response.data?['message'] ?? 
+                            response.data?['error'] ?? 
+                            'Failed to fetch attendance data';
+        throw Exception(errorMessage);
       }
 
       final data = response.data;
@@ -94,15 +98,38 @@ class AttendancesRepo {
       }
 
       final List list = data['data'];
-      return list
-          .map((e) => AttendanceModel.fromJson(e))
-          .toList();
+      return list.map((e) => AttendanceModel.fromJson(e)).toList();
+      
     } on DioException catch (e) {
       log.e('Dio error while fetching attendance', error: e);
-      return [];
+      
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout. Please check your internet');
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        throw Exception('Server response timeout. Please try again');
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw Exception('No internet connection');
+      } else if (e.response?.data != null) {
+        final errorMessage = e.response!.data['message'] ?? 
+                            e.response!.data['error'] ?? 
+                            'Network error occurred';
+        throw Exception(errorMessage);
+      }
+      
+      throw Exception('Failed to fetch attendance data');
+      
     } catch (e, s) {
       log.e('Unexpected error parsing attendance', error: e, stackTrace: s);
-      return [];
+      
+      if (e is Exception) {
+        rethrow;
+      }
+      
+      throw Exception('Failed to load attendance data');
     }
+  }
+
+  void dispose() {
+    dio.close();
   }
 }

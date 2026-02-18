@@ -45,7 +45,6 @@ class User {
     );
   }
 
-  // Create User from API response JSON
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       userId: json['userid'] as int,

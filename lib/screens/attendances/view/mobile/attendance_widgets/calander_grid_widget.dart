@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hrm/core/widgets/attendance_widgets/week_row_widget.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/week_row_widget.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 
 

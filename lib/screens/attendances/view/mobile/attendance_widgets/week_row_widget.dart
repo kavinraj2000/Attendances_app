@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/widgets/attendance_widgets/day_cell_widget.dart';
+import 'package:hrm/core/model/attances_model.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/day_cell_widget.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 
 class WeekRowWidget extends StatelessWidget {
@@ -46,7 +47,7 @@ class WeekRowWidget extends StatelessWidget {
           }
 
           final date = DateTime(year, month, dayNumber);
-          final attendanceData = state.getAttendanceForDate(date);
+          final attendance = _getAttendanceForDate(date);
           final isSelected = _isDateSelected(date);
 
           return Expanded(
@@ -55,13 +56,14 @@ class WeekRowWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border(
                   right: !isLast
-                      ? BorderSide(color: Constants.color.gridColor, width: 1)
+                      ? BorderSide(
+                          color: Constants.color.gridColor, width: 1)
                       : BorderSide.none,
                 ),
               ),
               child: DayCellWidget(
                 date: date,
-                attendanceData: attendanceData,
+                attendanceData: attendance,
                 isSelected: isSelected,
               ),
             ),
@@ -87,6 +89,21 @@ class WeekRowWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  AttendanceModel? _getAttendanceForDate(DateTime date) {
+    for (final item in state.scheduleData) {
+      try {
+        final attendanceDate =
+            DateTime.parse(item.attendanceDate);
+        if (attendanceDate.year == date.year &&
+            attendanceDate.month == date.month &&
+            attendanceDate.day == date.day) {
+          return item;
+        }
+      } catch (_) {}
+    }
+    return null;
   }
 
   bool _isDateSelected(DateTime date) {

@@ -22,25 +22,39 @@ class APPCONSTANTS {
   final double childAspectRatio = 0.9;
   final double subCategoryAspectRatio = 0.8;
   final int gridCrossAxisCount = 2;
-  
+  final double spacingM = 16.0;
+  final double spacingL = 24.0;
+  final double spacingXl = 32.0;
+  final double checkInButtonSize = 200.0;
+  final double fontSizeL = 20.0;
+  final double fontSizeS = 14.0;
+  final double borderRadiusXl = 20.0;
+  final double borderRadiusM = 12.0;
+  final double spacingXs = 4.0;
+  final double spacingS = 8.0;
+  final double spacingXxl = 24.0;
+  final double dayCircleSize = 48.0;
+  final double borderRadiusS = 4.0;
+  final double borderRadiusL = 12.0;
 
-  final TextStyle headerblack = GoogleFonts.unna(
+
+  final TextStyle headerblack = GoogleFonts.scopeOne(
     fontSize: 12,
     color: Colors.black87,
     fontWeight: FontWeight.normal,
   );
 
-  final TextStyle headerwhite = GoogleFonts.poppins(
+  final TextStyle headerwhite = GoogleFonts.scopeOne(
     fontSize: 12,
     fontWeight: FontWeight.bold,
     color: Colors.white,
   );
-  final TextStyle textblack = GoogleFonts.unna(
+  final TextStyle textblack = GoogleFonts.scopeOne(
     fontSize: 10,
     fontWeight: FontWeight.bold,
     color: Colors.black87,
   );
-  final TextStyle textwhite = GoogleFonts.unna(
+  final TextStyle textwhite = GoogleFonts.vibur(
     fontSize: 10,
     color: Colors.white,
   );

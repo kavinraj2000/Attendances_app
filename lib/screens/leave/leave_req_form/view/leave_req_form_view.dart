@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrm/core/model/leave_list_model.dart';
 import 'package:hrm/screens/leave/leave_req_form/bloc/leave_req_form_bloc.dart';
 import 'package:hrm/screens/leave/leave_req_form/repo/leave_req_form_repo.dart';
 import 'package:hrm/screens/leave/leave_req_form/view/mobile/leave_req_form_mobile_view.dart';
 import 'package:logger/logger.dart';
 
 class LeaveReqFormView extends StatelessWidget {
-  final int? id;
+  final Map<String,dynamic>? id;
 
   const LeaveReqFormView({super.key, this.id});
 
-  @override
+  @override 
   Widget build(BuildContext context) {
     Logger().d('LeaveReqFormView id: $id');
 

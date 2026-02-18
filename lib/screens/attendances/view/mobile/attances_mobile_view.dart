@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/widgets/attendance_widgets/attendance_card_widget.dart';
-import 'package:hrm/core/widgets/attendance_widgets/month_calander_widget.dart';
-import 'package:hrm/core/widgets/attendance_widgets/month_summary_card_widget.dart';
+import 'package:hrm/core/util/toast_util.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/attendance_card_widget.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/month_calander_widget.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/month_summary_card_widget.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
-
 
 class AttendanceLogsScreen extends StatefulWidget {
   const AttendanceLogsScreen({super.key});
@@ -41,8 +41,9 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
   }
 
   void _handleStateChanges(BuildContext context, AttendanceLogsState state) {
-    if (state.status == AttendanceLogStatus.error && state.isAuthError) {
-      _showErrorSnackBar(context, 'Session expired. Please login again.');
+    if (state.status == AttendanceLogStatus.error && state.clearSelectedDate) {
+      ToastUtil.error(context: context, message: "please chekin");
+
     }
   }
 
@@ -51,13 +52,13 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-           CircularProgressIndicator(
+          CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(
               Constants.color.inprogressColor,
             ),
             strokeWidth: 3,
           ),
-           SizedBox(height: Constants.color.spacingL),
+          SizedBox(height: Constants.app.spacingL),
           Text(
             'Loading attendance data...',
             style: TextStyle(
@@ -82,7 +83,7 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
             color: Constants.color.inactiveDayColor,
           ),
           const SizedBox(height: 16),
-           Text(
+          Text(
             'No attendance data',
             style: TextStyle(
               fontSize: 16,
@@ -109,70 +110,42 @@ class _AttendanceLogsScreenState extends State<AttendanceLogsScreen> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Header Section
           SliverToBoxAdapter(
             child: Padding(
-              padding:  EdgeInsets.all(Constants.color.spacingL),
+              padding: EdgeInsets.all(Constants.app.spacingL),
               child: Column(
                 children: [
                   MonthlySummaryCard(state: state),
-                   SizedBox(height: Constants.color.spacingL),
+                  SizedBox(height: Constants.app.spacingL),
                   const AttendanceLegendCard(),
-                   SizedBox(height: Constants.color.spacingL),
+                  SizedBox(height: Constants.app.spacingL),
                 ],
               ),
             ),
           ),
 
-          // Calendar Grid for all 12 months
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final monthNumber = index + 1;
-                return Padding(
-                  padding:  EdgeInsets.only(
-                    left: Constants.color.spacingL,
-                    right: Constants.color.spacingL,
-                    bottom: Constants.color.spacingL,
-                  ),
-                  child: MonthCalendarWidget(
-                    state: state,
-                    month: monthNumber,
-                    year: currentYear,
-                  ),
-                );
-              },
-              childCount: 12,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final monthNumber = index + 1;
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: Constants.app.spacingL,
+                  right: Constants.app.spacingL,
+                  bottom: Constants.app.spacingL,
+                ),
+                child: MonthCalendarWidget(
+                  state: state,
+                  month: monthNumber,
+                  year: currentYear,
+                ),
+              );
+            }, childCount: 12),
           ),
 
-           SliverToBoxAdapter(
-            child: SizedBox(height: Constants.color.spacingXxl),
+          SliverToBoxAdapter(
+            child: SizedBox(height: Constants.app.spacingXxl),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(message, style: const TextStyle(fontSize: 14)),
-            ),
-          ],
-        ),
-        backgroundColor: Constants.color.absentColor,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Constants.color.borderRadiusM),
-        ),
-        margin:  EdgeInsets.all(Constants.color.spacingL),
       ),
     );
   }

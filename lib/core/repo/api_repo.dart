@@ -2,7 +2,9 @@ import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:logger/logger.dart';
 
 class Api {
-  static const String baseUrl = 'https://doc.roo.bi/hrmapi/';
+  // static const String baseUrl = 'https://doc.roo.bi/hrmapi/';
+  static const String baseUrl = 'http://4.213.112.15:9004/';
+  // static const String imageAPI='https://hrm.ythiz.com/api/post.php';
 
   static Future<Map<String, String>> headers() async {
     final pref = PreferencesRepository();

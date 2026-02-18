@@ -104,8 +104,8 @@ class AttendanceModel extends Equatable {
       id: _parseInt(json['id']),
       employeeId: json['employee_id']?.toString() ?? '',
       attendanceDate: json['attendance_date']?.toString() ?? '',
-      checkinTime: _parseDateTime(json['checkin_time']),
-      checkoutTime: _parseDateTime(json['checkout_time']),
+      checkinTime: _utcToIst(json['checkin_time']),
+      checkoutTime: _utcToIst(json['checkout_time']),
       checkinLatitude: _parseDouble(json['checkin_latitude']),
       checkinLongitude: _parseDouble(json['checkin_longitude']),
       checkoutLatitude: _parseDouble(json['checkout_latitude']),
@@ -115,8 +115,8 @@ class AttendanceModel extends Equatable {
       attendanceStatus: json['attendance_status']?.toString(),
       totalWorkHours: json['total_work_hours']?.toString(),
       remarks: json['remarks']?.toString(),
-      created: _parseDateTime(json['created']),
-      modified: _parseDateTime(json['modified']),
+      created: _utcToIst(json['created']),
+      modified: _utcToIst(json['modified']),
     );
   }
 
@@ -125,26 +125,28 @@ class AttendanceModel extends Equatable {
       'id': id,
       'employee_id': employeeId,
       'attendance_date': attendanceDate,
-      'checkin_time': checkinTime?.toIso8601String(),
+      'checkin_time': checkinTime?.toUtc(),
       'checkin_latitude': checkinLatitude,
       'checkin_longitude': checkinLongitude,
       'checkin_image': checkinImage,
-      'checkout_time': checkoutTime?.toIso8601String(),
+      'checkout_time': checkoutTime?.toUtc(),
       'checkout_latitude': checkoutLatitude,
       'checkout_longitude': checkoutLongitude,
       'checkout_image': checkoutImage,
       'attendance_status': attendanceStatus,
       'total_work_hours': totalWorkHours,
       'remarks': remarks,
-      'created': created?.toIso8601String(),
-      'modified': modified?.toIso8601String(),
+      'created': created?.toUtc(),
+      'modified': modified?.toUtc(),
     };
   }
 
-  static DateTime? _parseDateTime(dynamic v) {
+
+  static DateTime? _utcToIst(dynamic v) {
     if (v == null) return null;
     try {
-      return DateTime.parse(v.toString());
+      final utc = DateTime.parse(v.toString()).toUtc();
+      return utc.add(const Duration(hours: 5, minutes: 30));
     } catch (_) {
       return null;
     }

@@ -14,4 +14,5 @@ class APICONSTANTS {
   final getdata = 'data/read';
   final leaveREQUEST = 'leaverequest/add';
   final editleaveREQUEST = 'leaverequest/edit';
+  final uploadImage='upload/img';
 }

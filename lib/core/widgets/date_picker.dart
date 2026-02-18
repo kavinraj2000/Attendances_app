@@ -1,14 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Modern Date Picker Dialog matching the design
-/// 
-/// Usage:
-/// ```dart
-/// final selectedDate = await showModernDatePicker(
-///   context: context,
-///   initialDate: DateTime.now(),
-/// );
-/// ```
 Future<DateTime?> showModernDatePicker({
   required BuildContext context,
   DateTime? initialDate,

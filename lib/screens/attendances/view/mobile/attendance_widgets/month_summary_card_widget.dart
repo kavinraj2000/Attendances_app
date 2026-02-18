@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/util/attendance_util.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
+import 'package:logger/logger.dart';
 
 
 class MonthlySummaryCard extends StatelessWidget {
@@ -14,25 +15,27 @@ class MonthlySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stats = state.datesWithAttendance;
+    final log=Logger();
+    final stats = state.attendanceSummary;
+    log.d('stats = state.attendanceSummary::::$stats');
     final now = DateTime.now();
     final monthName = AttendanceUtils.getMonthName(now.month);
 
     return Container(
-      padding:  EdgeInsets.all(Constants.color.spacingXl),
+      padding:  EdgeInsets.all(Constants.app.spacingXl),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          colors: [Color(0xFF667EEA), Color.fromARGB(255, 117, 136, 242)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(Constants.color.borderRadiusL),
+        borderRadius: BorderRadius.circular(Constants.app.borderRadiusL),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(monthName, now.year),
-           SizedBox(height: Constants.color.spacingXl),
+           SizedBox(height: Constants.app.spacingXl),
           _buildStatistics(stats),
         ],
       ),
@@ -81,33 +84,35 @@ class MonthlySummaryCard extends StatelessWidget {
   }
 
   Widget _buildStatistics(Map<String, dynamic> stats) {
+    Logger().d('_buildStatistics:::$stats');
     return Row(
+      
       children: [
         Expanded(
           child: _SummaryStatItem(
             label: 'Present',
-            count: '${stats['present'] ?? 0}',
+            count: '${stats['PRESENT'] ?? 0}',
             icon: Icons.check_circle,
           ),
         ),
         Expanded(
           child: _SummaryStatItem(
             label: 'Absent',
-            count: '${stats['absent'] ?? 0}',
+            count: '${stats['ABSENT'] ?? 0}',
             icon: Icons.cancel,
           ),
         ),
         Expanded(
           child: _SummaryStatItem(
             label: 'Late',
-            count: '${stats['late'] ?? 0}',
+            count: '${stats['LATE'] ?? 0}',
             icon: Icons.access_time,
           ),
         ),
         Expanded(
           child: _SummaryStatItem(
             label: 'Pending',
-            count: '${stats['pending'] ?? 0}',
+            count: '${stats['INPROGRESS'] ?? 0}',
             icon: Icons.event_busy,
           ),
         ),
@@ -116,7 +121,6 @@ class MonthlySummaryCard extends StatelessWidget {
   }
 }
 
-/// Individual statistic item within the summary card
 class _SummaryStatItem extends StatelessWidget {
   final String label;
   final String count;

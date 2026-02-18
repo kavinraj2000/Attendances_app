@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/util/attendance_util.dart';
-import 'package:hrm/core/widgets/attendance_widgets/calander_grid_widget.dart';
-import 'package:hrm/core/widgets/attendance_widgets/week_header_widget.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/calander_grid_widget.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendance_widgets/week_header_widget.dart';
 import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 
 class MonthCalendarWidget extends StatelessWidget {
@@ -28,7 +28,7 @@ class MonthCalendarWidget extends StatelessWidget {
         color: isCurrentMonth
             ? Constants.color.currentMonthBg
             : Constants.color.otherMonthBg,
-        borderRadius: BorderRadius.circular(Constants.color.borderRadiusM),
+        borderRadius: BorderRadius.circular(Constants.app.borderRadiusM),
         border: Border.all(
           color: isCurrentMonth
               ? Constants.color.inprogressColor.withOpacity(0.5)
@@ -63,14 +63,14 @@ class MonthCalendarWidget extends StatelessWidget {
 
   Widget _buildHeader(String monthName, int year, bool isCurrentMonth) {
     return Container(
-      padding: EdgeInsets.all(Constants.color.spacingL),
+      padding: EdgeInsets.all(Constants.app.spacingL),
       decoration: BoxDecoration(
         color: isCurrentMonth
             ? Constants.color.inprogressColor.withOpacity(0.08)
             : Colors.transparent,
         borderRadius:  BorderRadius.only(
-          topLeft: Radius.circular(Constants.color.borderRadiusM),
-          topRight: Radius.circular(Constants.color.borderRadiusM),
+          topLeft: Radius.circular(Constants.app.borderRadiusM),
+          topRight: Radius.circular(Constants.app.borderRadiusM),
         ),
       ),
       child: Row(

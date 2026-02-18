@@ -26,7 +26,7 @@ class DayCellWidget extends StatelessWidget {
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: cellStyle.backgroundColor,
-          borderRadius: BorderRadius.circular(Constants.color.borderRadiusS),
+          borderRadius: BorderRadius.circular(Constants.app.borderRadiusS),
           border: isSelected
               ? Border.all(
                   color: Constants.color.selectedBorderColor,
@@ -61,6 +61,7 @@ class DayCellWidget extends StatelessWidget {
     return Container(
       width: 6,
       height: 6,
+      
       decoration: BoxDecoration(
         color: AttendanceUtils.getStatusColor(attendanceData?.attendanceStatus),
         shape: BoxShape.circle,

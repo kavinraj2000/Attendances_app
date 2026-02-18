@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/model/leave_list_model.dart';
+import 'package:hrm/core/util/toast_util.dart';
 import 'package:hrm/screens/leave/leave_req_list/bloc/leave_req_list_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -14,17 +15,44 @@ class LeaveRequestsListPage extends StatefulWidget {
 }
 
 class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
-  Color getLeaveTypeColor(String type) {
+  List<Color> getLeaveTypeColor(String type) {
     switch (type) {
       case 'CASUAL':
-        return const Color(0xFF8B5CF6);
+        return [
+          const Color(0xFF8B5CF6),
+          const Color.fromARGB(255, 173, 145, 237),
+        ];
       case 'SICK':
-        return const Color(0xFF3B82F6);
+        return [
+          const Color(0xFF3B82F6),
+          const Color.fromARGB(255, 90, 123, 176),
+        ];
       case 'ANNUAL':
-        return const Color(0xFF6366F1);
+        return [
+          const Color.fromARGB(255, 144, 99, 241),
+          const Color.fromARGB(255, 172, 141, 239),
+        ];
+      case 'MATERNITY':
+        return [
+          const Color.fromARGB(255, 238, 207, 3),
+          const Color.fromARGB(255, 240, 220, 83),
+        ];
+      case 'WFH':
+        return [
+          const Color.fromARGB(255, 3, 238, 93),
+          const Color.fromARGB(255, 117, 251, 168),
+        ];
+      case 'PATERNITY':
+        return [Colors.orange, Colors.orangeAccent];
+      case 'BEREAVEMENT':
+        return [Colors.blueGrey, Colors.grey];
       default:
-        return Colors.grey;
+        return [Colors.blueAccent, Colors.purple];
     }
+  }
+
+  Color getLeaveTypeGradient(String leaveType) {
+    return getLeaveTypeColor(leaveType).first;
   }
 
   Color getStatusColor(String status) {
@@ -64,14 +92,7 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
       requests.where((r) => r.status == 'PENDING').length;
 
   void _onEditLeaveRequest(LeaveRequestListModel request) {
-    context.pushNamed(RouteName.leavereq, extra: request.id);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Edit leave request #${request.id}'),
-        action: SnackBarAction(label: 'OK', onPressed: () {}),
-      ),
-    );
+    context.pushNamed(RouteName.leavereq, extra: request.toJson());
   }
 
   @override
@@ -196,7 +217,10 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                               'Total',
                               leaveRequests.length.toString(),
                               Icons.calendar_today,
-                              const Color.fromARGB(255, 181, 2, 41),
+                              [
+                                const Color.fromARGB(255, 181, 2, 41),
+                                const Color.fromARGB(255, 238, 124, 149),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -205,7 +229,10 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                               'Approved',
                               getApprovedCount(leaveRequests).toString(),
                               Icons.check_circle,
-                              Colors.green,
+                              [
+                                const Color.fromARGB(255, 1, 211, 134),
+                                const Color.fromARGB(255, 107, 231, 206),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -214,7 +241,10 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                               'Pending',
                               getPendingCount(leaveRequests).toString(),
                               Icons.access_time,
-                              Colors.orange,
+                              [
+                                const Color.fromARGB(255, 248, 236, 0),
+                                const Color.fromARGB(255, 215, 210, 102),
+                              ],
                             ),
                           ),
                         ],
@@ -223,7 +253,6 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                   ),
                 ),
 
-                // Leave Requests List
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
@@ -252,12 +281,12 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
     String label,
     String value,
     IconData icon,
-    Color color,
+    List<Color> color,
   ) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color, // ✅ single color per card
+        gradient: LinearGradient(colors: color),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -319,7 +348,9 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
             Container(
               width: 80,
               decoration: BoxDecoration(
-                color: getLeaveTypeColor(request.leaveType),
+                gradient: LinearGradient(
+                  colors: getLeaveTypeColor(request.leaveType),
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   bottomLeft: Radius.circular(16),
@@ -451,7 +482,7 @@ class _LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                         Icon(
                           Icons.calendar_today,
                           size: 14,
-                          color: getLeaveTypeColor(request.leaveType),
+                          color: getLeaveTypeGradient(request.leaveType),
                         ),
                         const SizedBox(width: 6),
                         Expanded(

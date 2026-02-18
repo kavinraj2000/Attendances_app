@@ -13,7 +13,6 @@ class CheckIn extends DashboardEvent {}
 
 class CheckOut extends DashboardEvent {}
 
-// New calendar events
 class SelectDate extends DashboardEvent {
   final DateTime date;
 

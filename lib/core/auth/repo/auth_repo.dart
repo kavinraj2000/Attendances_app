@@ -38,77 +38,10 @@ class AuthRepo {
         final data = jsonDecode(response.body);
         final AuthModel = LoginModel.fromJson(data);
 
-       
-        return AuthModel;
-      } else if (response.statusCode == 401) {
-        throw Exception('Invalid email or password');
-      } else if (response.statusCode == 404) {
-        throw Exception('Auth endpoint not found');
-      } else if (response.statusCode == 500) {
-        throw Exception('Server error. Please try again later');
-      } else {
-        throw Exception('Auth failed: ${response.statusCode}');
-      }
-    } on http.ClientException catch (e) {
-      throw Exception('Network error: ${e.message}');
-    } on FormatException catch (e) {
-      throw Exception('Invalid response format: ${e.message}');
-    } catch (e) {
-      throw Exception('Auth failed: ${e.toString()}');
-    }
-  }
-
-Future<LoginModel> verfifyOTP({
-  required String email,
-  required String otp, // Changed from int to String
-}) async {
-  try {
-    final baseapi = Api.baseUrl;
-    log.d('verfifyOTP:baseapi:$baseapi');
-    final url = baseapi + Constants.api.otpCHECK;
-    log.d('verfifyOTP:url:$url');
-    log.d('verfifyOTP:email:$email'); // Add this for debugging
-    log.d('verfifyOTP:otp:$otp'); // Add this for debugging
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        "requestname": "verify_otp",
-        "data": {"email": email, "otp": otp}, // Now sending as string
-      }),
-    );
-
-    log.d('verfifyOTP:response:${response.body}');
-    // ... rest of the code
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final AuthModel = LoginModel.fromJson(data);
-
-        if (AuthModel.success == true && AuthModel.token != null) {
-          if (AuthModel.data != null) {
-            try {
-              await pref.saveUserData(AuthModel.data!);
-              log.d('User data saved to SharedPreferences');
-            } catch (e) {
-              log.e('Error saving user to SharedPreferences: $e');
-            }
-          }
-          if (AuthModel.token != null) {
-            await pref.saveToken(AuthModel.token!);
-            log.d('Token saved to SharedPreferences');
-          }
-
-          if (AuthModel.userId != null) {
-            await pref.saveUserId(AuthModel.userId!);
-            log.d('User ID saved to SharedPreferences');
-          }
-          await pref.setLoggedIn(true);
-          log.d('Auth status set to true');
+        // Save success status to SharedPreferences
+        if (AuthModel.success == true) {
+          await pref.saveAuthStatus('Success');
+          log.d('Auth status "Success" saved to SharedPreferences');
         }
 
         return AuthModel;
@@ -128,5 +61,94 @@ Future<LoginModel> verfifyOTP({
     } catch (e) {
       throw Exception('Auth failed: ${e.toString()}');
     }
+  }
+
+  Future<LoginModel> verfifyOTP({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final baseapi = Api.baseUrl;
+      log.d('verfifyOTP:baseapi:$baseapi');
+      final url = baseapi + Constants.api.otpCHECK;
+      log.d('verfifyOTP:url:$url');
+      log.d('verfifyOTP:email:$email');
+      log.d('verfifyOTP:otp:$otp');
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          "requestname": "verify_otp",
+          "data": {"email": email, "otp": otp},
+        }),
+      );
+
+      log.d('verfifyOTP:response:${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final AuthModel = LoginModel.fromJson(data);
+
+        if (AuthModel.success == true && AuthModel.token != null) {
+          // Save user data
+          if (AuthModel.data != null) {
+            try {
+              await pref.saveUserData(AuthModel.data!);
+              log.d('User data saved to SharedPreferences');
+            } catch (e) {
+              log.e('Error saving user to SharedPreferences: $e');
+            }
+          }
+
+          // Save token
+          if (AuthModel.token != null) {
+            await pref.saveToken(AuthModel.token!);
+            log.d('Token saved to SharedPreferences');
+          }
+
+          // Save user ID
+          if (AuthModel.userId != null) {
+            await pref.saveUserId(AuthModel.userId!);
+            log.d('User ID saved to SharedPreferences');
+          }
+
+          // Save logged in status
+          await pref.setLoggedIn(true);
+          log.d('Auth status set to true');
+
+          // Save success status
+          await pref.saveAuthStatus('Success');
+          log.d('Auth status "Success" saved to SharedPreferences');
+        }
+
+        return AuthModel;
+      } else if (response.statusCode == 401) {
+        throw Exception('Invalid email or password');
+      } else if (response.statusCode == 404) {
+        throw Exception('Auth endpoint not found');
+      } else if (response.statusCode == 500) {
+        throw Exception('Server error. Please try again later');
+      } else {
+        throw Exception('Auth failed: ${response.statusCode}');
+      }
+    } on http.ClientException catch (e) {
+      throw Exception('Network error: ${e.message}');
+    } on FormatException catch (e) {
+      throw Exception('Invalid response format: ${e.message}');
+    } catch (e) {
+      throw Exception('Auth failed: ${e.toString()}');
+    }
+  }
+
+  Future<void> logout() async {
+    await pref.clearAuthStatus();
+    await pref.setLoggedIn(false);
+    await pref.clearAllData();
+
+    log.d('User logged out and all data cleared');
   }
 }

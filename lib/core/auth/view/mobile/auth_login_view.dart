@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
+import 'package:hrm/core/util/toast_util.dart';
 import 'package:lottie/lottie.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
 
@@ -22,31 +23,15 @@ class _AuthloginViewContent extends StatelessWidget {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          // Show snackbar for messages
-          if (state.message != null && state.message!.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message!),
-                backgroundColor: state.status == AuthStatus.failure
-                    ? Colors.red
-                    : Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
+    
 
-          // Navigate to OTP page when OTP is sent
           if (state.status == AuthStatus.otpsend && state.email.isNotEmpty) {
-            // Use pushReplacement to prevent going back to login
+            ToastUtil.otpSent(context: context);
+
             context.goNamed(
               RouteName.otp,
               queryParameters: {'email': state.email},
             );
-          }
-
-          // Navigate to dashboard on successful authentication
-          if (state.status == AuthStatus.success) {
-            context.goNamed(RouteName.dashboard);
           }
         },
         builder: (context, state) {
@@ -290,7 +275,6 @@ class _AuthButton extends StatelessWidget {
                 context.read<AuthBloc>().add(
                   AuthSubmitted(email: state.email.trim()),
                 );
-                context.goNamed(RouteName.otp);
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,

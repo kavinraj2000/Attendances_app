@@ -72,6 +72,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           state.copyWith(
             status: AuthStatus.otpsend,
             email: event.email,
+            otp: '', // Clear any previous OTP
             message: 'OTP sent successfully to ${event.email}',
           ),
         );
@@ -84,6 +85,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
       }
     } catch (e) {
+      log.e('Auth submission error: $e');
       emit(
         state.copyWith(
           status: AuthStatus.failure,
@@ -94,13 +96,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _onOtpChanged(OtpChanged event, Emitter<AuthState> emit) {
-    emit(state.copyWith(otp: event.otp));
+    emit(state.copyWith(
+      otp: event.otp,
+      // Clear any previous error messages when user starts typing
+      message: '',
+    ));
   }
 
   Future<void> _onOtpSubmitted(
     OtpSubmitted event,
     Emitter<AuthState> emit,
   ) async {
+    // Validate OTP length
     if (event.otp.toString().length != 4) {
       emit(
         state.copyWith(
@@ -111,6 +118,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
+    // Validate email
     if (event.email.isEmpty || !_isValidEmail(event.email)) {
       emit(
         state.copyWith(
@@ -124,11 +132,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(status: AuthStatus.loading));
 
     try {
-      log.d('_onOtpSubmitted:${event.email}::::${event.otp}');
+      log.d('_onOtpSubmitted: ${event.email} :::: ${event.otp}');
+      
       final res = await _authRepo.verfifyOTP(
         email: event.email,
         otp: event.otp.toString(),
       );
+      
       if (res.success == true) {
         await _prefs.setLoggedIn(true);
 
@@ -141,7 +151,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(
           state.copyWith(
-            status: AuthStatus.failure,
+            status: AuthStatus.otpsend, // Keep user on OTP screen
             message: res.message ?? 'Invalid OTP. Please try again.',
           ),
         );
@@ -150,7 +160,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       log.e('OTP verification error: $e');
       emit(
         state.copyWith(
-          status: AuthStatus.failure,
+          status: AuthStatus.otpsend, // Keep user on OTP screen
           message: 'Error: ${e.toString()}',
         ),
       );

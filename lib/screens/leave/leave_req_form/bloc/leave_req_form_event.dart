@@ -8,12 +8,16 @@ abstract class LeaveFormReqevent extends Equatable {
 }
 
 class InitialLeaverequestevent extends LeaveFormReqevent {
-  final int? intialvalue;
+  final Map<String,dynamic> ? intialvalue;
+  final LeaveRequestModel? leaveRequestModel;
 
-  const InitialLeaverequestevent({this.intialvalue});
+  const InitialLeaverequestevent({
+     this.intialvalue,
+     this.leaveRequestModel,
+  });
 
   @override
-  List<Object?> get props => [intialvalue];
+  List<Object?> get props => [intialvalue, leaveRequestModel];
 }
 
 class UpdateLeaverequestevent extends LeaveFormReqevent {

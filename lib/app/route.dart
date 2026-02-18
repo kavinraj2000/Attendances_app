@@ -1,18 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
 import 'package:hrm/core/auth/view/auth_page.dart';
-import 'package:hrm/core/auth/view/mobile/otp_checkin_page.dart';
 import 'package:hrm/core/auth/view/mobile/otp_page.dart';
 import 'package:hrm/core/helper/navigation_helper.dart';
 import 'package:hrm/core/helper/route_helper.dart';
+import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/core/services/image_capture_service.dart';
 import 'package:hrm/screens/attendances/view/attendance_view.dart';
 import 'package:hrm/screens/dashboard/dashboard_view.dart';
 import 'package:hrm/screens/leave/leave_req_form/view/leave_req_form_view.dart';
 import 'package:hrm/screens/leave/leave_req_list/view/leave_req_list_view.dart';
+import 'package:hrm/screens/profile/view/mobile/profile_mobile_view_page.dart';
+import 'package:hrm/screens/profile/view/profile_view.dart';
 import 'package:logger/logger.dart';
 
 class Routes {
@@ -21,7 +21,7 @@ class Routes {
 
   Routes(this.authBloc) {
     router = GoRouter(
-      initialLocation: RouteName.otp,
+      initialLocation: RouteName.login,
       routes: [
         GoRoute(
           name: RouteName.login,
@@ -33,7 +33,7 @@ class Routes {
           path: RouteName.otp,
           builder: (context, state) {
             final email = state.uri.queryParameters['email'];
-            log.d('RouteName.otp::$email');
+            Logger().d('RouteName.otp::$email');
             return OtpPage(email: email ?? '');
           },
         ),
@@ -63,7 +63,8 @@ class Routes {
           name: RouteName.leavereq,
           path: RouteName.leavereq,
           pageBuilder: (context, state) {
-            final int? id = state.extra as int?;
+            final Map<String, dynamic>? id =
+                state.extra as Map<String, dynamic>?;
             Logger().d('RouteName.leavereq:update::$id');
             return NoTransitionPage(
               key: state.pageKey,
@@ -85,53 +86,72 @@ class Routes {
             ),
           ),
         ),
+             GoRoute(
+          name: RouteName.profile,
+          path: RouteName.profile,
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: NavigationHelper(
+              currentRoute: state.matchedLocation,
+              child: ProfileView(),
+            ),
+          ),
+        ),
       ],
-      // redirect: (context, state) {
-      //   final authState = authBloc.state;
-      //   final location = state.matchedLocation;
+      redirect: (context, state) async {
+        final authState = authBloc.state;
+        final location = state.matchedLocation;
+        final PreferencesRepository preferencesRepository =
+            PreferencesRepository();
 
-      //   final isLoginPage = location == RouteName.login;
-      //   final isOtpPage = location == RouteName.otp;
-      //   final isAuthPage = isLoginPage || isOtpPage;
+        final isLoginPage = location == RouteName.login;
+        final isOtpPage = location == RouteName.otp;
+        final isAuthPage = isLoginPage || isOtpPage;
 
-      //   // Don't redirect while loading
-      //   if (authState.status == AuthStatus.loading) {
-      //     return null;
-      //   }
+        final isLoggedIn = await preferencesRepository.isLoggedIn();
+        final isAuthSuccess = await preferencesRepository.isAuthSuccess();
+        final token = await preferencesRepository.getToken();
 
-      //   // User is authenticated (success status)
-      //   final isAuthenticated = authState.status == AuthStatus.success;
+        Logger().d('Redirect Check:');
+        Logger().d('- Location: $location');
+        Logger().d('- isLoggedIn: $isLoggedIn');
+        Logger().d(
+          '- isAuthSuccess: $isAuthSuccess::::- authState.status: ${authState.status}::::',
+        );
+        Logger().d('- authState.status: ${authState.status}');
 
-      //   if (isAuthenticated) {
-      //     // If already authenticated and trying to access auth pages, redirect to dashboard
-      //     if (isAuthPage) {
-      //       return RouteName.dashboard;
-      //     }
-      //     // Allow access to protected pages
-      //     return null;
-      //   }
+        if (authState.status == AuthStatus.loading) {
+          return null;
+        }
 
-      //   if (authState.status == AuthStatus.otpsend) {
-      //     if (isLoginPage) {
-      //       return '${RouteName.otp}?email=${authState.email}';
-      //     }
-      //     if (isOtpPage) {
-      //       return null;
-      //     }
-      //     // Trying to access protected pages while OTP pending - redirect to OTP
-      //     return '${RouteName.otp}?email=${authState.email}';
-      //   }
+        final isAuthenticated =
+            (authState.status == AuthStatus.success) ||
+            (isLoggedIn && isAuthSuccess && token != null);
 
-      //   if (isOtpPage) {
-      //     return RouteName.login;
-      //   }
+        if (isAuthenticated) {
+          Logger().d('User is authenticated');
+          if (isAuthPage) {
+            Logger().d('Redirecting to dashboard from auth page');
+            return RouteName.dashboard;
+          }
+          return null;
+        }
 
-      //   if (!isAuthPage) {
-      //     return RouteName.login;
-      //   }
+        if (authState.status == AuthStatus.otpsend) {
+          final otpRoute = '${RouteName.otp}?email=${authState.email}';
+          Logger().d('OTP sent, redirecting to: $otpRoute');
+          if (isOtpPage) return null;
+          return otpRoute;
+        }
 
-      //   return null;
-      // },
+        Logger().d('User is NOT authenticated');
+        if (!isAuthPage) {
+          Logger().d('Redirecting to login page');
+          return RouteName.login;
+        }
+
+        return null;
+      },
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
     );
   }

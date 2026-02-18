@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hrm/core/util/toast_util.dart';
 import 'package:logger/web.dart';
 import 'package:lottie/lottie.dart';
 import 'package:hrm/app/route_name.dart';
@@ -9,7 +10,6 @@ import 'package:hrm/core/auth/bloc/auth_bloc.dart';
 
 class OtpVerificationView extends StatelessWidget {
   final String email;
-
   const OtpVerificationView({super.key, required this.email});
 
   @override
@@ -20,7 +20,6 @@ class OtpVerificationView extends StatelessWidget {
 
 class _OtpVerificationContent extends StatelessWidget {
   final String email;
-
   const _OtpVerificationContent({required this.email});
 
   @override
@@ -29,62 +28,44 @@ class _OtpVerificationContent extends StatelessWidget {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.message != null && state.message!.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message!),
-                backgroundColor: state.status == AuthStatus.failure
-                    ? Colors.red
-                    : Colors.green,
-              ),
-            );
+          ToastUtil.error(context: context, message: '');
           }
-
           if (state.status == AuthStatus.success) {
             context.goNamed(RouteName.dashboard);
           }
         },
         builder: (context, state) {
-          return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-              ),
-            ),
-            child: Stack(
+
+          if (email.isNotEmpty) {
+            return _buildOtpScreen(context, state);
+          }
+          
+          if (state.status == AuthStatus.otpsend && state.email.isNotEmpty) {
+            return _buildOtpScreen(context, state);
+          }
+
+          if (state.status == AuthStatus.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state.status == AuthStatus.success) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.2,
-                    child: Lottie.asset(
-                      'assets/lottie/background.json',
-                      fit: BoxFit.cover,
-                      repeat: true,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: const AssetImage(
-                                'assets/images/pattern.png',
-                              ),
-                              fit: BoxFit.cover,
-                              opacity: 0.1,
-                              onError: (error, stackTrace) {},
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                const Text(
+                  'Please request OTP first',
+                  style: TextStyle(fontSize: 16),
                 ),
-                SafeArea(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: _OtpForm(state: state, email: email),
-                    ),
-                  ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    context.goNamed(RouteName.login);
+                  },
+                  child: const Text('Go Back'),
                 ),
               ],
             ),
@@ -93,18 +74,66 @@ class _OtpVerificationContent extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildOtpScreen(BuildContext context, AuthState state) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.2,
+              child: Lottie.asset(
+                'assets/lottie/background.json',
+                fit: BoxFit.cover,
+                repeat: true,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: const AssetImage(
+                          'assets/images/pattern.png',
+                        ),
+                        fit: BoxFit.cover,
+                        opacity: 0.1,
+                        onError: (error, stackTrace) {},
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: _OtpForm(
+                  state: state,
+                  email: email.isNotEmpty ? email : state.email,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _OtpForm extends StatelessWidget {
   final AuthState state;
   final String email;
-
   const _OtpForm({required this.state, required this.email});
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = state.status == AuthStatus.loading;
-
     return Container(
       constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.all(32),
@@ -129,9 +158,9 @@ class _OtpForm extends StatelessWidget {
             'Enter OTP',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF667eea),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF667eea),
+                ),
           ),
           const SizedBox(height: 8),
           Padding(
@@ -157,11 +186,11 @@ class _OtpForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          _OtpInputFields(isLoading: isLoading),
+          _OtpInputFields(state: state),
           const SizedBox(height: 32),
           _VerifyButton(state: state, email: email),
           const SizedBox(height: 20),
-          _ResendOtpButton(isLoading: isLoading, email: email),
+          _ResendOtpButton(state: state, email: email),
         ],
       ),
     );
@@ -208,17 +237,17 @@ class _OtpLogoWidget extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          Positioned(
+          const Positioned(
             top: 10,
             right: 60,
             child: _NumberBadge(number: '1', color: Colors.red),
           ),
-          Positioned(
+          const Positioned(
             top: 30,
             right: 20,
             child: _NumberBadge(number: '2', color: Colors.green),
           ),
-          Positioned(
+          const Positioned(
             bottom: 20,
             left: 20,
             child: _NumberBadge(number: '3', color: Colors.blue),
@@ -232,34 +261,31 @@ class _OtpLogoWidget extends StatelessWidget {
 class _NumberBadge extends StatelessWidget {
   final String number;
   final Color color;
-
   const _NumberBadge({required this.number, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Flexible(
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            number,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          number,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -268,9 +294,8 @@ class _NumberBadge extends StatelessWidget {
 }
 
 class _OtpInputFields extends StatefulWidget {
-  final bool isLoading;
-
-  const _OtpInputFields({required this.isLoading});
+  final AuthState state;
+  const _OtpInputFields({required this.state});
 
   @override
   State<_OtpInputFields> createState() => _OtpInputFieldsState();
@@ -300,6 +325,8 @@ class _OtpInputFieldsState extends State<_OtpInputFields> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = widget.state.status == AuthStatus.loading;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
@@ -311,7 +338,7 @@ class _OtpInputFieldsState extends State<_OtpInputFields> {
             child: TextFormField(
               controller: _controllers[index],
               focusNode: _focusNodes[index],
-              enabled: !widget.isLoading,
+              enabled: !isLoading,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               maxLength: 1,
@@ -347,7 +374,6 @@ class _OtpInputFieldsState extends State<_OtpInputFields> {
                 } else if (value.isEmpty && index > 0) {
                   _focusNodes[index - 1].requestFocus();
                 }
-
                 context.read<AuthBloc>().add(OtpChanged(otpCode));
               },
             ),
@@ -361,32 +387,41 @@ class _OtpInputFieldsState extends State<_OtpInputFields> {
 class _VerifyButton extends StatelessWidget {
   final AuthState state;
   final String email;
-
   const _VerifyButton({
     required this.state,
     required this.email,
-  }); // Update constructor
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = state.status == AuthStatus.otpsend;
+    final isLoading = state.status == AuthStatus.loading;
+    final isOtpComplete = state.otp.length == 4;
 
-    return Container(
+    return SizedBox(
+      height: 56,
       child: ElevatedButton(
-        onPressed: isLoading
+        onPressed: isLoading || !isOtpComplete
             ? null
             : () {
-                context.read<AuthBloc>().add(
-                  OtpSubmitted(
-                    email: email, 
-                    otp: int.parse(state.otp),
+                final otpInt = int.tryParse(state.otp);
+                if (otpInt == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid 4-digit OTP'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
 
-                  ),
-                );
                 Logger().d('_VerifyButton:::$email::::${state.otp}');
+                context.read<AuthBloc>().add(
+                      OtpSubmitted(email: email, otp: otpInt),
+                    );
               },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.lightBlue,
+          backgroundColor: const Color(0xFF667eea),
+          disabledBackgroundColor: Colors.grey[300],
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -406,7 +441,7 @@ class _VerifyButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.white,
                 ),
               ),
       ),
@@ -415,10 +450,9 @@ class _VerifyButton extends StatelessWidget {
 }
 
 class _ResendOtpButton extends StatefulWidget {
-  final bool isLoading;
+  final AuthState state;
   final String email;
-
-  const _ResendOtpButton({required this.isLoading, required this.email});
+  const _ResendOtpButton({required this.state, required this.email});
 
   @override
   State<_ResendOtpButton> createState() => _ResendOtpButtonState();
@@ -427,6 +461,7 @@ class _ResendOtpButton extends StatefulWidget {
 class _ResendOtpButtonState extends State<_ResendOtpButton> {
   int _remainingSeconds = 60;
   bool _canResend = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -434,30 +469,41 @@ class _ResendOtpButtonState extends State<_ResendOtpButton> {
     _startTimer();
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   void _startTimer() {
     setState(() {
       _remainingSeconds = 60;
       _canResend = false;
     });
-
     Future.delayed(const Duration(seconds: 1), _tick);
   }
 
   void _tick() {
+    if (_isDisposed) return;
+
     if (_remainingSeconds > 0) {
       setState(() {
         _remainingSeconds--;
       });
       Future.delayed(const Duration(seconds: 1), _tick);
     } else {
-      setState(() {
-        _canResend = true;
-      });
+      if (!_isDisposed) {
+        setState(() {
+          _canResend = true;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = widget.state.status == AuthStatus.loading;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -466,16 +512,20 @@ class _ResendOtpButtonState extends State<_ResendOtpButton> {
           style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
         TextButton(
-          onPressed: _canResend && !widget.isLoading
+          onPressed: _canResend && !isLoading
               ? () {
-                  // context.read<AuthBloc>().add(ResendOtp(email: widget.email));
-                  // _startTimer();
+                  context.read<AuthBloc>().add(
+                        AuthSubmitted(email: widget.email),
+                      );
+                  _startTimer();
                 }
               : null,
           child: Text(
             _canResend ? 'Resend' : 'Resend in ${_remainingSeconds}s',
             style: TextStyle(
-              color: _canResend ? const Color(0xFF667eea) : Colors.grey[400],
+              color: _canResend && !isLoading
+                  ? const Color(0xFF667eea)
+                  : Colors.grey[400],
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),

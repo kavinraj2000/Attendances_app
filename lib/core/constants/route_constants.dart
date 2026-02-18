@@ -5,20 +5,13 @@ class RouteConstants {
   RouteConstants();
 
   static const List<String> routesWithoutNavBar = [
-    // '/search',
-    // '/productdetail',
-    // '/notificationInfo',
-    // '/joinUs',
-    // '/notification',
+
+    RouteName.leavereq
   ];
 
   // Routes where AppBar should be hidden
   static const List<String> routesWithoutAppbar = [
-    // RouteName.logs,
-    // Add more routes here that shouldn't show the AppBar
-    // RouteName.setting,
-    // RouteName.profile,
-    // '/custom-page',
+ 
   ];
 
   static const List<String> routesWithoutStoryButton = [
@@ -41,15 +34,15 @@ class RouteConstants {
       'icon': Constants.icon.calander,
       'label': 'Logs',
     },
+    // {
+    //   'index': 2,
+    //   'path': RouteName.profile,
+    //   'icon': Constants.icon.profile,
+    //   'label': 'Profile',
+    //   'isDefault': true,
+    // },
     {
       'index': 2,
-      'path': RouteName.profile,
-      'icon': Constants.icon.profile,
-      'label': 'Profile',
-      'isDefault': true,
-    },
-    {
-      'index': 3,
       'path': RouteName.leavelist,
       'icon': Constants.icon.calander,
       'label': 'Leave',
