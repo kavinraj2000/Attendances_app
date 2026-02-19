@@ -155,7 +155,7 @@ class AppTheme {
       colorScheme: ColorScheme.light(
         primary: lightColors['primary']!,
         secondary: lightColors['secondary']!,
-        surface: lightColors['white']!,
+        surface: Colors.white,
         error: lightColors['danger']!,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
@@ -164,7 +164,7 @@ class AppTheme {
       ),
 
       appBarTheme: AppBarTheme(
-        backgroundColor: lightColors['headerBg'],
+        backgroundColor: Colors.white,
         foregroundColor: lightColors['dark'],
         elevation: 0,
         centerTitle: false,

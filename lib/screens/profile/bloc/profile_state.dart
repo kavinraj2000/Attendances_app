@@ -1,43 +1,38 @@
-part of'profile_bloc.dart';
+// part of 'profile_bloc.dart';
 
-abstract class ProfileState {
-  const ProfileState();
-}
+// abstract class ProfileState {}
 
-class ProfileInitial extends ProfileState {
-  const ProfileInitial();
-}
+// class ProfileInitial extends ProfileState {}
 
-class ProfileLoading extends ProfileState {
-  const ProfileLoading();
-}
+// class ProfileLoading extends ProfileState {}
 
-class ProfileLoaded extends ProfileState {
-  final ProfileModel profile;
-  final bool isEditing;
+// class ProfileLoaded extends ProfileState {
+//   final String? username;
+//   final String? emailId;
+//   final int? userId;
+//   final int? employeeId;
+//   final int? companyId;
+//   final List<String>? userRoles;
+//   final String? authStatus;
+//   final bool isLoggedIn;
+//   final LoginData? loginData;
 
-  const ProfileLoaded({
-    required this.profile,
-    this.isEditing = false,
-  });
+//   ProfileLoaded({
+//     required this.username,
+//     required this.emailId,
+//     required this.userId,
+//     required this.employeeId,
+//     required this.companyId,
+//     required this.userRoles,
+//     required this.authStatus,
+//     required this.isLoggedIn,
+//     required this.loginData,
+//   });
+// }
 
-  ProfileLoaded copyWith({
-    ProfileModel? profile,
-    bool? isEditing,
-  }) {
-    return ProfileLoaded(
-      profile:   profile   ?? this.profile,
-      isEditing: isEditing ?? this.isEditing,
-    );
-  }
-}
+// class ProfileError extends ProfileState {
+//   final String message;
+//   ProfileError(this.message);
+// }
 
-class ProfileError extends ProfileState {
-  final String message;
-  const ProfileError(this.message);
-}
-
-class ProfileUpdating extends ProfileState {
-  final ProfileModel profile;
-  const ProfileUpdating(this.profile);
-}
+// class ProfileLoggedOut extends ProfileState {}

@@ -6,13 +6,10 @@ import 'package:hrm/core/auth/view/mobile/otp_page.dart';
 import 'package:hrm/core/helper/navigation_helper.dart';
 import 'package:hrm/core/helper/route_helper.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
-import 'package:hrm/core/services/image_capture_service.dart';
 import 'package:hrm/screens/attendances/view/attendance_view.dart';
 import 'package:hrm/screens/dashboard/dashboard_view.dart';
 import 'package:hrm/screens/leave/leave_req_form/view/leave_req_form_view.dart';
 import 'package:hrm/screens/leave/leave_req_list/view/leave_req_list_view.dart';
-import 'package:hrm/screens/profile/view/mobile/profile_mobile_view_page.dart';
-import 'package:hrm/screens/profile/view/profile_view.dart';
 import 'package:logger/logger.dart';
 
 class Routes {
@@ -21,7 +18,7 @@ class Routes {
 
   Routes(this.authBloc) {
     router = GoRouter(
-      initialLocation: RouteName.login,
+      initialLocation: RouteName.dashboard,
       routes: [
         GoRoute(
           name: RouteName.login,
@@ -86,18 +83,19 @@ class Routes {
             ),
           ),
         ),
-             GoRoute(
-          name: RouteName.profile,
-          path: RouteName.profile,
-          pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: NavigationHelper(
-              currentRoute: state.matchedLocation,
-              child: ProfileView(),
-            ),
-          ),
-        ),
+        //      GoRoute(
+        //   name: RouteName.profile,
+        //   path: RouteName.profile,
+        //   pageBuilder: (context, state) => NoTransitionPage(
+        //     key: state.pageKey,
+        //     child: NavigationHelper(
+        //       currentRoute: state.matchedLocation,
+        //       child: ProfileView(),
+        //     ),
+        //   ),
+        // ),
       ],
+
       redirect: (context, state) async {
         final authState = authBloc.state;
         final location = state.matchedLocation;
@@ -111,15 +109,6 @@ class Routes {
         final isLoggedIn = await preferencesRepository.isLoggedIn();
         final isAuthSuccess = await preferencesRepository.isAuthSuccess();
         final token = await preferencesRepository.getToken();
-
-        Logger().d('Redirect Check:');
-        Logger().d('- Location: $location');
-        Logger().d('- isLoggedIn: $isLoggedIn');
-        Logger().d(
-          '- isAuthSuccess: $isAuthSuccess::::- authState.status: ${authState.status}::::',
-        );
-        Logger().d('- authState.status: ${authState.status}');
-
         if (authState.status == AuthStatus.loading) {
           return null;
         }
@@ -129,7 +118,7 @@ class Routes {
             (isLoggedIn && isAuthSuccess && token != null);
 
         if (isAuthenticated) {
-          Logger().d('User is authenticated');
+          Logger().d('User is authenticated:::$isAuthenticated');
           if (isAuthPage) {
             Logger().d('Redirecting to dashboard from auth page');
             return RouteName.dashboard;

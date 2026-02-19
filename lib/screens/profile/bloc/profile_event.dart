@@ -1,28 +1,7 @@
-part of'profile_bloc.dart';
+part of 'profile_bloc.dart';
 
-abstract class ProfileEvent {
-  const ProfileEvent();
-}
+abstract class ProfileEvent {}
 
-class ProfileLoadRequested extends ProfileEvent {
-  const ProfileLoadRequested();
-}
+class ProfileLoadRequested extends ProfileEvent {}
 
-class ProfileEditRequested extends ProfileEvent {
-  const ProfileEditRequested();
-}
-
-/// Triggered when the user submits edits
-class ProfileUpdateSubmitted extends ProfileEvent {
-  final String? name;
-  final String? title;
-  final String? email;
-  final String? phone;
-
-  const ProfileUpdateSubmitted({
-    this.name,
-    this.title,
-    this.email,
-    this.phone,
-  });
-}
+class ProfileLogoutRequested extends ProfileEvent {}

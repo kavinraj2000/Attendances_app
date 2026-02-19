@@ -52,7 +52,7 @@ class COLORCONSTANTS {
   final pendingColor = const Color(0xFF8A2BE2);
   final checkOutGradientStart = Color(0xFFFF6B6B);
   final checkOutGradientEnd = Color(0xFFEE5A6F);
-  final surfaceWhite = Color(0xFFFAFAFA);
+  final surfaceWhite = Colors.white;
   final dividerColor = Color(0xFFE0E0E0);
   final cardBackground = Color(0xFFFFFFFF);
   final accentPurple = Color(0xFF6C63FF);

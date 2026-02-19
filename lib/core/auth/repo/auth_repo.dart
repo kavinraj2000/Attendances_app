@@ -38,10 +38,13 @@ class AuthRepo {
         final data = jsonDecode(response.body);
         final AuthModel = LoginModel.fromJson(data);
 
-        // Save success status to SharedPreferences
         if (AuthModel.success == true) {
           await pref.saveAuthStatus('Success');
           log.d('Auth status "Success" saved to SharedPreferences');
+        }
+        if (AuthModel.data?.emailId != null) {
+          await pref.saveEmailID(AuthModel.data!.emailId!);
+          log.d('Email ID saved: ${AuthModel.data!.emailId}');
         }
 
         return AuthModel;

@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hrm/core/model/attances_model.dart';
+import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/core/services/image_capture_service.dart';
 import 'package:hrm/core/services/permission_handler.dart';
 import 'package:hrm/screens/dashboard/repo/dashboard_repo.dart';
@@ -14,9 +14,12 @@ part 'dashboard_state.dart';
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final DashboardRepository repo;
+  final PreferencesRepository _prefs;
   final Logger log = Logger();
 
-  DashboardBloc(this.repo) : super(DashboardState.initial()) {
+  DashboardBloc(this.repo, {PreferencesRepository? prefs})
+    : _prefs = prefs ?? PreferencesRepository(),
+      super(DashboardState.initial()) {
     on<InitializeDashboard>(_onInitialize);
     on<CheckIn>(_onCheckIn);
     on<CheckOut>(_onCheckOut);
@@ -39,35 +42,30 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     );
 
     try {
-      final attendanceList = await repo.getAllAttendanceData();
-      final DateTime now = DateTime.now();
+      final results = await Future.wait([
+        repo.getAllAttendanceData(),
+        _prefs.getUsername(),
+      ]);
 
-      bool isSameDay(DateTime a, DateTime b) {
-        return a.year == b.year && a.month == b.month && a.day == b.day;
-      }
+      final attendanceList = results[0] as List<AttendanceModel>;
+      final userName = (results[1] as String?) ?? '';
 
-      final AttendanceModel? todayRecord = attendanceList
-          .cast<AttendanceModel?>()
-          .firstWhere((item) {
-            if (item == null || item.checkinTime == null) return false;
-            if (item.checkoutTime != null) return false;
-            if (item.attendanceStatus == 'PENDING') return false;
-            return isSameDay(item.checkinTime!, now);
-          }, orElse: () => null);
-
-      final CheckInStatus checkInStatus = todayRecord != null
+      final now = DateTime.now();
+      final todayRecord = _findActiveCheckin(attendanceList, now);
+      final checkInStatus = todayRecord != null
           ? CheckInStatus.checkedIn
           : CheckInStatus.notCheckedIn;
 
       log.d(
-        'Initialize: Found ${attendanceList.length} records, '
-        'Status: $checkInStatus',
+        'Initialize: ${attendanceList.length} records | '
+        'Status: $checkInStatus | User: $userName',
       );
 
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.loaded,
           attendanceList: attendanceList,
+          userName: userName,
           checkInStatus: checkInStatus,
           checkInTime: todayRecord?.checkinTime,
           clearCheckOutTime: todayRecord == null,
@@ -76,7 +74,6 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       );
     } catch (e, s) {
       log.e('Initialize failed: $e\n$s');
-
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
@@ -110,33 +107,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       }
 
       final position = await Geolocator.getCurrentPosition();
-      final imageService = ImageService();
-      final File? imageFile = await imageService.captureImage();
+      final imageFile = await ImageService().captureImage();
+      if (imageFile == null) throw Exception('Image capture cancelled');
 
-      if (imageFile == null) throw Exception("Image capture cancelled");
-
-      int checkStatus = 1;
-
-      if (state.checkInTime != null) {
-        final checkInTime = DateTime.parse(state.checkInTime.toString());
-        final now = DateTime.now();
-
-        final isSameDay =
-            checkInTime.year == now.year &&
-            checkInTime.month == now.month &&
-            checkInTime.day == now.day;
-
-        if (state.checkInTime == null || isSameDay) {
-          checkStatus = 0;
-        }
-      }
-
-      log.d('checkin::::checkStatus:::$checkStatus');
-
-      log.d("Uploading image...");
-      final String filename = await repo.uploadImage(file: imageFile, value: 1);
-
-      log.d("Calling check-in API...");
+      final filename = await repo.uploadImage(file: imageFile, value: 1);
       await repo.checkIn(
         lat: position.latitude,
         lng: position.longitude,
@@ -201,17 +175,11 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         return;
       }
 
-      log.d('Getting location and capturing image for checkout...');
       final position = await Geolocator.getCurrentPosition();
-      final imageService = ImageService();
-      final File? imageFile = await imageService.captureImage();
+      final imageFile = await ImageService().captureImage();
+      if (imageFile == null) throw Exception('Image capture cancelled');
 
-      if (imageFile == null) {
-        throw Exception("Image capture cancelled");
-      }
-      log.d('Check-out at: ${position.latitude}, ${position.longitude}');
       await repo.uploadImage(file: imageFile, value: 0);
-      log.d('repo.storeImages:::$imageFile');
       final imageName = imageFile.path.split('/').last;
 
       await repo.checkOut(
@@ -220,27 +188,11 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         image: imageName,
       );
 
-      log.i('Check-out successful, refreshing attendance list...');
-
       final attendanceList = await repo.getAllAttendanceData();
-      final DateTime now = DateTime.now();
+      final now = DateTime.now();
+      final todayRecord = _findTodayRecord(attendanceList, now);
 
-      final AttendanceModel? todayRecord = attendanceList
-          .cast<AttendanceModel?>()
-          .firstWhere((item) {
-            if (item == null || item.checkinTime == null) return false;
-
-            final checkinDate = DateTime(
-              item.checkinTime!.year,
-              item.checkinTime!.month,
-              item.checkinTime!.day,
-            );
-            final today = DateTime(now.year, now.month, now.day);
-
-            return checkinDate.isAtSameMomentAs(today);
-          }, orElse: () => null);
-
-      log.d('Checked out record found: ${todayRecord != null}');
+      log.i('Check-out successful | Record found: ${todayRecord != null}');
 
       emit(
         state.copyWith(
@@ -255,27 +207,27 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     } catch (e, s) {
       log.e('Check-out failed: $e\n$s');
 
-      String errorMessage = 'Check-out failed. Please try again.';
       if (e.toString().contains('Already checked out') ||
           e.toString().contains('no active check-in')) {
-        errorMessage = 'Already checked out or no active check-in found';
         emit(
           state.copyWith(
             loadingStatus: DashboardLoadingStatus.failure,
             checkInStatus: CheckInStatus.checkedOut,
             clearCheckInTime: true,
             clearCheckOutTime: true,
-            errorMessage: errorMessage,
+            errorMessage: 'Already checked out or no active check-in found',
             isLoading: false,
           ),
         );
         return;
-      } else if (e.toString().contains('permission')) {
-        errorMessage = 'Permission denied. Please grant required permissions.';
-      } else if (e.toString().contains('network') ||
-          e.toString().contains('connection')) {
-        errorMessage = 'Network error. Please check your connection.';
       }
+
+      final errorMessage = e.toString().contains('permission')
+          ? 'Permission denied. Please grant required permissions.'
+          : e.toString().contains('network') ||
+                e.toString().contains('connection')
+          ? 'Network error. Please check your connection.'
+          : 'Check-out failed. Please try again.';
 
       emit(
         state.copyWith(
@@ -287,23 +239,18 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
-  void _onSelectDate(SelectDate event, Emitter<DashboardState> emit) {
-    emit(state.copyWith(selectedDate: event.date));
-  }
+  void _onSelectDate(SelectDate event, Emitter<DashboardState> emit) =>
+      emit(state.copyWith(selectedDate: event.date));
 
   void _onUpdateCalendarMonth(
     UpdateCalendarMonth event,
     Emitter<DashboardState> emit,
-  ) {
-    emit(state.copyWith(focusedMonth: event.month));
-  }
+  ) => emit(state.copyWith(focusedMonth: event.month));
 
   Future<void> _onLoadDashboardData(
     LoadDashboardData event,
     Emitter<DashboardState> emit,
-  ) async {
-    add(InitializeDashboard());
-  }
+  ) async => add(InitializeDashboard());
 
   Future<void> _onRefreshDashboardData(
     RefreshDashboardData event,
@@ -311,47 +258,31 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     try {
       final attendanceList = await repo.getAllAttendanceData();
-      final DateTime now = DateTime.now();
-
-      final AttendanceModel? activeAttendance = attendanceList
-          .cast<AttendanceModel?>()
-          .firstWhere((item) {
-            if (item == null || item.checkinTime == null) return false;
-            if (item.checkoutTime != null) return false;
-
-            final checkinDate = DateTime(
-              item.checkinTime!.year,
-              item.checkinTime!.month,
-              item.checkinTime!.day,
-            );
-            final today = DateTime(now.year, now.month, now.day);
-
-            return checkinDate.isAtSameMomentAs(today);
-          }, orElse: () => null);
+      final now = DateTime.now();
+      final activeRecord = _findActiveCheckin(attendanceList, now);
 
       log.d(
-        'Refresh: Found ${attendanceList.length} records, '
-        'Active: ${activeAttendance != null}',
+        'Refresh: ${attendanceList.length} records | '
+        'Active: ${activeRecord != null}',
       );
 
       emit(
         state.copyWith(
           attendanceList: attendanceList,
-          checkInStatus: activeAttendance != null
+          checkInStatus: activeRecord != null
               ? CheckInStatus.checkedIn
               : CheckInStatus.notCheckedIn,
-          checkInTime: activeAttendance?.checkinTime,
-          checkOutTime: activeAttendance == null
+          checkInTime: activeRecord?.checkinTime,
+          checkOutTime: activeRecord == null
               ? (attendanceList.isNotEmpty
                     ? attendanceList.first.checkoutTime
                     : null)
               : null,
-          clearCheckOutTime: activeAttendance != null,
+          clearCheckOutTime: activeRecord != null,
         ),
       );
     } catch (e, s) {
       log.e('Refresh failed: $e\n$s');
-      // Optionally emit error state if needed
       emit(
         state.copyWith(
           loadingStatus: DashboardLoadingStatus.failure,
@@ -360,4 +291,26 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       );
     }
   }
+
+  AttendanceModel? _findActiveCheckin(
+    List<AttendanceModel> list,
+    DateTime now,
+  ) {
+    return list.cast<AttendanceModel?>().firstWhere((item) {
+      if (item == null || item.checkinTime == null) return false;
+      if (item.checkoutTime != null) return false;
+      if (item.attendanceStatus == 'PENDING') return false;
+      return _isSameDay(item.checkinTime!, now);
+    }, orElse: () => null);
+  }
+
+  AttendanceModel? _findTodayRecord(List<AttendanceModel> list, DateTime now) {
+    return list.cast<AttendanceModel?>().firstWhere((item) {
+      if (item == null || item.checkinTime == null) return false;
+      return _isSameDay(item.checkinTime!, now);
+    }, orElse: () => null);
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }

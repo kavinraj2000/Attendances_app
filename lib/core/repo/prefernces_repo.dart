@@ -7,29 +7,24 @@ import 'package:hrm/core/config/app_config.dart';
 
 class PreferencesRepository {
   static const _checkInStartKey = 'check_in_start_time';
-  static const _authStatusKey   = 'auth_status';
+  static const _authStatusKey = 'auth_status';
+  static const _emailid = 'email_id';
 
-  // ── Attendance state keys ──────────────────────────────────────────────────
-  static const _isCheckedInKey   = 'attendance_is_checked_in';
-  static const _isCheckedOutKey  = 'attendance_is_checked_out';
-  static const _checkInTimeKey   = 'attendance_check_in_time';
-  static const _checkOutTimeKey  = 'attendance_check_out_time';
-  static const _checkInDateKey   = 'attendance_check_in_date'; // yyyy-MM-dd
+  static const _isCheckedInKey = 'attendance_is_checked_in';
+  static const _isCheckedOutKey = 'attendance_is_checked_out';
+  static const _checkInTimeKey = 'attendance_check_in_time';
+  static const _checkOutTimeKey = 'attendance_check_out_time';
+  static const _checkInDateKey = 'attendance_check_in_date';
 
   final log = Logger();
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // ATTENDANCE STATE
-  // ══════════════════════════════════════════════════════════════════════════
-
-  /// Call after a successful check-in API response.
   Future<void> saveCheckInState(DateTime checkInTime) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final today = _todayString();
-      await prefs.setBool(_isCheckedInKey,  true);
+      await prefs.setBool(_isCheckedInKey, true);
       await prefs.setBool(_isCheckedOutKey, false);
-      await prefs.setString(_checkInTimeKey,  checkInTime.toIso8601String());
+      await prefs.setString(_checkInTimeKey, checkInTime.toIso8601String());
       await prefs.remove(_checkOutTimeKey);
       await prefs.setString(_checkInDateKey, today);
       log.d('Saved check-in state: $checkInTime');
@@ -38,11 +33,10 @@ class PreferencesRepository {
     }
   }
 
-  /// Call after a successful check-out API response.
   Future<void> saveCheckOutState(DateTime checkOutTime) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_isCheckedInKey,  false);
+      await prefs.setBool(_isCheckedInKey, false);
       await prefs.setBool(_isCheckedOutKey, true);
       await prefs.setString(_checkOutTimeKey, checkOutTime.toIso8601String());
       log.d('Saved check-out state: $checkOutTime');
@@ -51,7 +45,6 @@ class PreferencesRepository {
     }
   }
 
-  /// Returns true if the user is currently checked in.
   Future<bool> getIsCheckedIn() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -287,7 +280,7 @@ class PreferencesRepository {
   Future<String?> getEmailId() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(AppConfig.EmailId);
+      return prefs.getString(_emailid);
     } catch (e) {
       log.e('Error getting email ID: $e');
       return null;
@@ -305,10 +298,6 @@ class PreferencesRepository {
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // AUTH STATUS
-  // ══════════════════════════════════════════════════════════════════════════
-
   Future<void> saveAuthStatus(String status) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -316,6 +305,15 @@ class PreferencesRepository {
       log.d('Auth status "$status" saved');
     } catch (e) {
       log.e('Error saving auth status: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> saveEmailID(String emailid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_emailid, emailid);
+    } catch (e) {
       rethrow;
     }
   }
@@ -382,20 +380,22 @@ class PreferencesRepository {
       final prefs = await SharedPreferences.getInstance();
       return {
         'shared_preferences': {
-          'logged_in':    prefs.getBool(AppConfig.IsLoggedIn) ?? false,
-          'auth_status':  prefs.getString(_authStatusKey),
-          'token':        prefs.getString(AppConfig.AccessToken)?.substring(0, 20) ?? 'null',
-          'user_id':      prefs.getInt(AppConfig.UserId),
-          'username':     prefs.getString(AppConfig.Username),
-          'employee_id':  prefs.getInt(AppConfig.EmployeeId),
-          'company_id':   prefs.getInt(AppConfig.CompanyId),
+          'logged_in': prefs.getBool(AppConfig.IsLoggedIn) ?? false,
+          'auth_status': prefs.getString(_authStatusKey),
+          'token':
+              prefs.getString(AppConfig.AccessToken)?.substring(0, 20) ??
+              'null',
+          'user_id': prefs.getInt(AppConfig.UserId),
+          'username': prefs.getString(AppConfig.Username),
+          'employee_id': prefs.getInt(AppConfig.EmployeeId),
+          'company_id': prefs.getInt(AppConfig.CompanyId),
         },
         'attendance': {
-          'is_checked_in':  prefs.getBool(_isCheckedInKey) ?? false,
+          'is_checked_in': prefs.getBool(_isCheckedInKey) ?? false,
           'is_checked_out': prefs.getBool(_isCheckedOutKey) ?? false,
-          'check_in_time':  prefs.getString(_checkInTimeKey),
+          'check_in_time': prefs.getString(_checkInTimeKey),
           'check_out_time': prefs.getString(_checkOutTimeKey),
-          'check_in_date':  prefs.getString(_checkInDateKey),
+          'check_in_date': prefs.getString(_checkInDateKey),
         },
       };
     } catch (e) {
