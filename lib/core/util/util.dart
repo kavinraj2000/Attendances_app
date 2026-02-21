@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Util extends StatelessWidget {
-   final Widget? child;
+  final Widget? child;
 
   const Util({super.key, this.child});
 
@@ -20,9 +20,7 @@ class Util extends StatelessWidget {
                 width: 390,
                 height: 844,
                 child: Column(
-                  children: [
-                    Expanded(child: child ?? const SizedBox.shrink()),
-                  ],
+                  children: [Expanded(child: child ?? const SizedBox.shrink())],
                 ),
               ),
             ),

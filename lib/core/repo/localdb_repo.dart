@@ -86,33 +86,18 @@ class LocalDBRepository {
     }
 
     if (oldVersion < 3) {
-      await db.execute(
-        'ALTER TABLE users ADD COLUMN created_at TEXT',
-      );
-      await db.execute(
-        'ALTER TABLE users ADD COLUMN updated_at TEXT',
-      );
+      await db.execute('ALTER TABLE users ADD COLUMN created_at TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN updated_at TEXT');
     }
 
     if (oldVersion < 4) {
-      await db.execute(
-        'ALTER TABLE users ADD COLUMN user_role TEXT',
-      );
-      await db.execute(
-        'ALTER TABLE users ADD COLUMN email_id TEXT',
-      );
-      await db.execute(
-        'ALTER TABLE users ADD COLUMN token_type TEXT',
-      );
-      await db.execute(
-        'ALTER TABLE attendance ADD COLUMN created_at TEXT',
-      );
-      await db.execute(
-        'ALTER TABLE attendance ADD COLUMN updated_at TEXT',
-      );
+      await db.execute('ALTER TABLE users ADD COLUMN user_role TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN email_id TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN token_type TEXT');
+      await db.execute('ALTER TABLE attendance ADD COLUMN created_at TEXT');
+      await db.execute('ALTER TABLE attendance ADD COLUMN updated_at TEXT');
     }
   }
-
 
   Future<int> saveUser(LoginData loginData) async {
     final db = await database;
@@ -152,11 +137,7 @@ class LocalDBRepository {
   Future<bool> isLoggedIn() async {
     final db = await database;
 
-    final rows = await db.query(
-      'users',
-      where: 'is_logged_in = 1',
-      limit: 1,
-    );
+    final rows = await db.query('users', where: 'is_logged_in = 1', limit: 1);
 
     return rows.isNotEmpty;
   }
@@ -168,25 +149,19 @@ class LocalDBRepository {
     return count;
   }
 
-
   Future<void> updateAccessToken(String token) async {
     final db = await database;
 
-    await db.update(
-      'users',
-      {
-        'access_token': token,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'id = (SELECT MAX(id) FROM users)',
-    );
+    await db.update('users', {
+      'access_token': token,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, where: 'id = (SELECT MAX(id) FROM users)');
   }
 
   Future<String?> getAccessToken() async {
     final user = await getUser();
     return user?.accessToken;
   }
-
 
   Future<int?> getEmployeeId() async {
     final user = await getUser();
@@ -202,7 +177,6 @@ class LocalDBRepository {
     final user = await getUser();
     return user?.companyId;
   }
-
 
   Future<int> save(AttendanceModel model) async {
     try {
@@ -386,7 +360,7 @@ class LocalDBRepository {
         where: 'id = ?',
         whereArgs: [id],
       );
-      
+
       log.i(' Deleted attendance record (id=$id)');
       return count;
     } catch (e) {
@@ -394,8 +368,6 @@ class LocalDBRepository {
       return 0;
     }
   }
-
-
 
   Future<void> clearAllData() async {
     final db = await database;
@@ -433,25 +405,23 @@ class LocalDBRepository {
     log.i(' DB recreated');
   }
 
-
   Future<Map<String, int>> getStats() async {
     try {
       final db = await database;
 
-      final userCount = Sqflite.firstIntValue(
+      final userCount =
+          Sqflite.firstIntValue(
             await db.rawQuery('SELECT COUNT(*) FROM users'),
           ) ??
           0;
 
-      final attendanceCount = Sqflite.firstIntValue(
+      final attendanceCount =
+          Sqflite.firstIntValue(
             await db.rawQuery('SELECT COUNT(*) FROM attendance'),
           ) ??
           0;
 
-      return {
-        'users': userCount,
-        'attendance': attendanceCount,
-      };
+      return {'users': userCount, 'attendance': attendanceCount};
     } catch (e) {
       log.e('Failed to get stats', error: e);
       return {'users': 0, 'attendance': 0};

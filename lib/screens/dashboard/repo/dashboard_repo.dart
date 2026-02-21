@@ -55,76 +55,69 @@ class DashboardRepository {
     );
   }
 
- Future<String> uploadImage({
-  required File file,
-  required int value,
-}) async {
-  try {
-    final user = await pref.getUserData();
+  Future<String> uploadImage({required File file, required int value}) async {
+    try {
+      final user = await pref.getUserData();
 
-    if (user == null || user.employeeId == null) {
-      throw Exception('User session expired. Please login again');
-    }
-
-    if (!file.existsSync()) {
-      throw Exception("Image file not found");
-    }
-
-    final fileName = file.path.split('/').last;
-
-    log.i("Uploading file: $fileName");
-    log.i("Full URL: ${dio.options.baseUrl}${Constants.api.uploadImage}");
-
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(
-        file.path,
-        filename: fileName,
-      ),
-      'checking': value,
-    });
-
-    log.d('checking::$value');
-
-    final response = await dio.post(
-      Constants.api.uploadImage,
-      data: formData,
-      options: Options(
-        contentType: 'multipart/form-data',
-        validateStatus: (status) =>
-            status != null && status < 500,
-      ),
-    );
-
-    log.d("Upload response [${response.statusCode}]: ${response.data}:::::${response.realUri}");
-
-    if (response.statusCode == 200 ||
-        response.statusCode == 201) {
-      log.i("Image uploaded successfully");
-
-      if (response.data is Map &&
-          response.data['filename'] != null) {
-        return response.data['filename'];
+      if (user == null || user.employeeId == null) {
+        throw Exception('User session expired. Please login again');
       }
 
-      throw Exception("Invalid server response format");
-    }
+      if (!file.existsSync()) {
+        throw Exception("Image file not found");
+      }
 
-    if (response.statusCode == 404) {
-      throw Exception("Upload endpoint not found (404)");
-    }
+      final fileName = file.path.split('/').last;
 
-    throw Exception(
-      _extractErrorMessage(response.data) ??
-          "Upload failed with status ${response.statusCode}",
-    );
-  } on DioException catch (e) {
-    log.e("Upload DioException: ${e.response?.data}");
-    throw _handleDioError(e, "Image upload failed");
-  } catch (e) {
-    log.e("Upload error: $e");
-    rethrow;
+      log.i("Uploading file: $fileName");
+      log.i("Full URL: ${dio.options.baseUrl}${Constants.api.uploadImage}");
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: fileName),
+        'checking': value,
+      });
+
+      log.d('checking::$value');
+
+      final response = await dio.post(
+        Constants.api.uploadImage,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      log.d(
+        "Upload response [${response.statusCode}]: ${response.data}:::::${response.realUri}",
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        log.i("Image uploaded successfully");
+
+        if (response.data is Map && response.data['filename'] != null) {
+          return response.data['filename'];
+        }
+
+        throw Exception("Invalid server response format");
+      }
+
+      if (response.statusCode == 404) {
+        throw Exception("Upload endpoint not found (404)");
+      }
+
+      throw Exception(
+        _extractErrorMessage(response.data) ??
+            "Upload failed with status ${response.statusCode}",
+      );
+    } on DioException catch (e) {
+      log.e("Upload DioException: ${e.response?.data}");
+      throw _handleDioError(e, "Image upload failed");
+    } catch (e) {
+      log.e("Upload error: $e");
+      rethrow;
+    }
   }
-}
 
   Future<AttendanceModel> checkIn({
     required double lat,
@@ -164,7 +157,9 @@ class DashboardRepository {
         ),
       );
 
-      log.i('Check-in response [${response.statusCode}]: ${response.data}:::::${response.realUri}');
+      log.i(
+        'Check-in response [${response.statusCode}]: ${response.data}:::::${response.realUri}',
+      );
 
       if (response.statusCode == 400) {
         throw Exception(
@@ -180,9 +175,7 @@ class DashboardRepository {
         );
       }
       if (response.statusCode == 500) {
-        log.e(
-          '500 full body: ${jsonEncode(response.data)}',
-        ); 
+        log.e('500 full body: ${jsonEncode(response.data)}');
         throw Exception(
           _extractErrorMessage(response.data) ??
               'Server error. Please try again.',
@@ -240,14 +233,13 @@ class DashboardRepository {
     };
 
     try {
-      log.d('Check-out payload: ${jsonEncode(payload)}'); // ✅ log payload
+      log.d('Check-out payload: ${jsonEncode(payload)}');
 
       final response = await dio.post(
         Constants.api.checkOut,
         data: payload,
         options: Options(
-          validateStatus: (status) =>
-              status != null && status <= 500, // ✅ <= not
+          validateStatus: (status) => status != null && status <= 500,
           contentType: Headers.jsonContentType,
         ),
       );
@@ -449,7 +441,6 @@ class DashboardRepository {
   String? _extractErrorMessage(dynamic data) {
     if (data == null) return null;
     if (data is Map) {
-      // ✅ Handle FastAPI 422 detail array
       if (data['detail'] is List) {
         final details = data['detail'] as List;
         if (details.isNotEmpty && details.first is Map) {

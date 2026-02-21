@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/constants/route_constants.dart';
 
 class BottomNavBarWidget extends StatelessWidget {
@@ -30,11 +31,11 @@ class BottomNavBarWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: RouteConstants.navbarItems.map((item) {
+            children:Constants.route.navbarItems.map((item) {
               return _buildNavItem(
-                icon: item['icon'] as String,
-                label: item['label'] as String,
-                index: item['index'] as int,
+                icon: item.icon,
+                label: item.label,
+                index: item.index,
               );
             }).toList(),
           ),

@@ -111,6 +111,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       if (imageFile == null) throw Exception('Image capture cancelled');
 
       final filename = await repo.uploadImage(file: imageFile, value: 1);
+      log.d('repo.uploadImage:::$imageFile');
+
       await repo.checkIn(
         lat: position.latitude,
         lng: position.longitude,
@@ -181,6 +183,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
       await repo.uploadImage(file: imageFile, value: 0);
       final imageName = imageFile.path.split('/').last;
+
+      log.d('repo.uploadImage:::$imageFile');
 
       await repo.checkOut(
         lat: position.latitude,

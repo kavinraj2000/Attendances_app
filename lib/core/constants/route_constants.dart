@@ -1,97 +1,80 @@
 import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/constants/constants.dart';
+import 'package:hrm/core/model/nav_item.dart';
 
-class RouteConstants {
-  RouteConstants();
+class ROUTECONSTANTS {
+  ROUTECONSTANTS();
 
-  static const List<String> routesWithoutNavBar = [
-
-    RouteName.leavereq
+  final List<String> routesWithoutNavBar = [
+    RouteName.leavereq,
   ];
 
-  // Routes where AppBar should be hidden
-  static const List<String> routesWithoutAppbar = [
- 
+  final List<String> routesWithoutAppbar = [];
+
+  final List<String> routesWithoutStoryButton = [];
+
+  final List<NavItem> navbar = [
+    NavItem(
+      index: 0,
+      path: RouteName.dashboard,
+      icon: Constants.icon.home,
+      label: 'Home',
+      isDefault: true,
+    ),
+    NavItem(
+      index: 1,
+      path: RouteName.logs,
+      icon: Constants.icon.calander,
+      label: 'Logs',
+    ),
+    NavItem(
+      index: 2,
+      path: RouteName.leavelist,
+      icon: Constants.icon.calander,
+      label: 'Leave',
+    ),
   ];
 
-  static const List<String> routesWithoutStoryButton = [
-    // '/search',
-    // '/productdetail',
-    // '/productinfo',
-    // '/joinUs',
-  ];
 
-  static List<Map<String, dynamic>> navbar = [
-    {
-      'index': 0,
-      'path': RouteName.dashboard,
-      'icon': Constants.icon.home,
-      'label': 'Home',
-    },
-    {
-      'index': 1,
-      'path': RouteName.logs,
-      'icon': Constants.icon.calander,
-      'label': 'Logs',
-    },
-    // {
-    //   'index': 2,
-    //   'path': RouteName.profile,
-    //   'icon': Constants.icon.profile,
-    //   'label': 'Profile',
-    //   'isDefault': true,
-    // },
-    {
-      'index': 2,
-      'path': RouteName.leavelist,
-      'icon': Constants.icon.calander,
-      'label': 'Leave',
-    },
-  ];
+  List<String> get navigationRoutes =>
+      navbar.map((item) => item.path).toList();
 
-  static List<String> get navigationRoutes {
-    return navbar.map((item) => item['path'] as String).toList();
-  }
+  int get defaultHomeIndex =>
+      navbar.indexWhere((item) => item.isDefault);
 
-  static int get defaultHomeIndex {
-    return navbar.indexWhere((item) => item['isDefault'] == true);
-  }
+  int get storyIndex =>
+      navbar.indexWhere((item) => item.skipInNavBar);
 
-  static int get storyIndex {
-    return navbar.indexWhere((item) => item['skipInNavBar'] == true);
-  }
+  List<NavItem> get navbarItems =>
+      navbar.where((item) => !item.skipInNavBar).toList();
 
-  static List<Map<String, dynamic>> get navbarItems {
-    return navbar.where((item) => item['skipInNavBar'] != true).toList();
-  }
+  bool shouldShowNavBar(String currentRoute) =>
+      !routesWithoutNavBar
+          .any((route) => currentRoute.contains(route));
 
-  static bool shouldShowNavBar(String currentRoute) {
-    return !routesWithoutNavBar.any((route) => currentRoute.contains(route));
-  }
+  bool shouldShowAppbar(String currentRoute) =>
+      !routesWithoutAppbar
+          .any((route) => currentRoute.contains(route));
 
-  static bool shouldShowAppbar(String currentRoute) {
-    return !routesWithoutAppbar.any((route) => currentRoute.contains(route));
-  }
+  bool shouldShowStoryButton(String currentRoute) =>
+      !routesWithoutStoryButton
+          .any((route) => currentRoute.contains(route));
 
-  static bool shouldShowStoryButton(String currentRoute) {
-    return !routesWithoutStoryButton.any(
-      (route) => currentRoute.contains(route),
-    );
-  }
-
-  static String? getRouteByIndex(int index) {
+  String? getRouteByIndex(int index) {
     if (index < 0 || index >= navbar.length) return null;
-    return navbar[index]['path'] as String?;
+    return navbar[index].path;
   }
 
-  static int getIndexByRoute(String route) {
-    final cleanRoute = route.startsWith('/') ? route.substring(1) : route;
+  int getIndexByRoute(String route) {
+    final cleanRoute =
+        route.startsWith('/') ? route.substring(1) : route;
 
     for (int i = 0; i < navbar.length; i++) {
-      final routePattern = navbar[i]['path'] as String;
-      final cleanPattern = routePattern.startsWith('/')
-          ? routePattern.substring(1)
-          : routePattern;
+      final pattern = navbar[i].path;
+      final cleanPattern =
+          pattern.startsWith('/')
+              ? pattern.substring(1)
+              : pattern;
 
       if (cleanRoute == cleanPattern ||
           cleanRoute.startsWith('$cleanPattern/')) {
@@ -100,41 +83,5 @@ class RouteConstants {
     }
 
     return defaultHomeIndex;
-  }
-
-  static int getNextValidIndex(int currentIndex) {
-    if (currentIndex < 0 || currentIndex >= navbar.length) {
-      return defaultHomeIndex;
-    }
-
-    int nextIndex = currentIndex + 1;
-
-    if (nextIndex == storyIndex) {
-      nextIndex++;
-    }
-
-    if (nextIndex >= navbar.length) {
-      return currentIndex;
-    }
-
-    return nextIndex;
-  }
-
-  static int getPreviousValidIndex(int currentIndex) {
-    if (currentIndex < 0 || currentIndex >= navbar.length) {
-      return defaultHomeIndex;
-    }
-
-    int prevIndex = currentIndex - 1;
-
-    if (prevIndex == storyIndex) {
-      prevIndex--;
-    }
-
-    if (prevIndex < 0) {
-      return currentIndex;
-    }
-
-    return prevIndex;
   }
 }

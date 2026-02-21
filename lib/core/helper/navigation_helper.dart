@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
-import 'package:hrm/core/constants/route_constants.dart';
+import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:hrm/core/widgets/app_widget.dart';
 import 'package:hrm/core/widgets/bottom_nav_bar.dart';
@@ -33,12 +33,9 @@ class NavigationHelper extends StatefulWidget {
 
 class _NavigationHelperState extends State<NavigationHelper> {
   late final MainShellController _controller;
-  final PreferencesRepository _AuthRepo = PreferencesRepository();
+  final PreferencesRepository _authRepo = PreferencesRepository();
 
   String _userName = 'User';
-  String _greeting = 'Good Morning';
-  String? _avatarUrl;
-  bool _isLoadingUserData = true;
 
   @override
   void initState() {
@@ -57,54 +54,30 @@ class _NavigationHelperState extends State<NavigationHelper> {
 
   Future<void> _loadUserData() async {
     try {
-      final userData = await _AuthRepo.getUserData();
+      final userData = await _authRepo.getUserData();
 
-      if (userData != null) {
-        setState(() {
-          _userName = userData.username;
-          _greeting = _getGreeting();
-          _isLoadingUserData = false;
-        });
-      } else {
-        setState(() {
-          _userName = 'User';
-          _greeting = _getGreeting();
-          _isLoadingUserData = false;
-        });
-      }
+      setState(() {
+        _userName = userData?.username ?? 'User';
+      });
     } catch (e) {
-      print('Error loading user data: $e');
+      debugPrint('Error loading user data: $e');
       setState(() {
         _userName = 'User';
-        _greeting = _getGreeting();
-        _isLoadingUserData = false;
       });
     }
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Good Morning';
-    } else if (hour < 17) {
-      return 'Good Afternoon';
-    } else {
-      return 'Good Evening';
-    }
-  }
 
   void _navigateToIndex(int index) {
     final route = _controller.getRouteByIndex(index);
     if (route == null) return;
-
     context.go(route);
   }
-
 
   Future<void> _handleBackNavigation() async {
     final isHomeRoute = _controller.isHomeRoute(widget.currentRoute);
     if (!isHomeRoute) {
-      _navigateToIndex(RouteConstants.defaultHomeIndex);
+      _navigateToIndex(Constants.route.defaultHomeIndex);
     }
   }
 
@@ -112,49 +85,52 @@ class _NavigationHelperState extends State<NavigationHelper> {
     if (!didPop) _handleBackNavigation();
   }
 
-@override
-Widget build(BuildContext context) {
-  final selectedIndex = _controller.getSelectedIndex(widget.currentRoute);
-  final shouldShowBottomNavBar =
-      _controller.shouldShowBottomNavBar(widget.currentRoute);
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex =
+        _controller.getSelectedIndex(widget.currentRoute);
 
-  return BlocListener<AuthBloc, AuthState>(
-    listenWhen: (previous, current) =>
-        previous.status != current.status,
-    listener: (context, state) {
-      if (state.status == AuthStatus.initial) {
-        // 🔐 Logout completed → go to login
-        context.goNamed(RouteName.login);
-      }
-    },
-    child: PopScope(
-      canPop: false,
-      onPopInvoked: _handlePopInvoked,
-      child: Scaffold(
-        appBar: CustomAppBar(
-          userName: _userName,
-          onLogoutPressed: () {
-            context.read<AuthBloc>().add(LogoutRequested());
-          },
-          onNotificationPressed: () {
-            debugPrint('Notification pressed');
-          },
+    final shouldShowBottomNavBar =
+        _controller.shouldShowBottomNavBar(widget.currentRoute);
+
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          previous.status != current.status,
+      listener: (context, state) {
+        if (state.status == AuthStatus.initial) {
+          context.goNamed(RouteName.login);
+        }
+      },
+      child: PopScope(
+        canPop: false,
+        onPopInvoked: _handlePopInvoked,
+        child: Scaffold(
+          appBar: Constants.route.shouldShowAppbar(widget.currentRoute)
+              ? CustomAppBar(
+                  userName: _userName,
+                  onLogoutPressed: () {
+                    context.read<AuthBloc>().add(LogoutRequested());
+                  },
+                  onNotificationPressed: () {
+                    debugPrint('Notification pressed');
+                  },
+                )
+              : null,
+          body: Column(
+            children: [
+              Expanded(child: widget.child),
+            ],
+          ),
+          bottomNavigationBar: shouldShowBottomNavBar
+              ? BottomNavBarWidget(
+                  currentIndex: selectedIndex,
+                  onTap: _navigateToIndex,
+                )
+              : null,
         ),
-        body: Column(
-          children: [
-            Expanded(child: widget.child),
-          ],
-        ),
-        bottomNavigationBar: shouldShowBottomNavBar
-            ? BottomNavBarWidget(
-                currentIndex: selectedIndex,
-                onTap: _navigateToIndex,
-              )
-            : null,
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class MainShellController extends GetxController {
@@ -167,47 +143,48 @@ class MainShellController extends GetxController {
   }
 
   int getSelectedIndex(String route) {
-    if (route.isEmpty) return RouteConstants.defaultHomeIndex;
+    if (route.isEmpty) return Constants.route.defaultHomeIndex;
 
-    String baseRoute = route;
-    if (route.contains('?')) {
-      baseRoute = route.split('?').first;
-    }
+    String baseRoute = route.contains('?')
+        ? route.split('?').first
+        : route;
 
-    final index = RouteConstants.getIndexByRoute(baseRoute);
+    final index = Constants.route.getIndexByRoute(baseRoute);
 
     if (index == -1) {
       if (baseRoute.startsWith(RouteName.logs)) {
-        return RouteConstants.getIndexByRoute(RouteName.logs);
+        return Constants.route.getIndexByRoute(RouteName.logs);
       }
       if (baseRoute.startsWith(RouteName.profile)) {
-        return RouteConstants.getIndexByRoute(RouteName.profile);
+        return Constants.route.getIndexByRoute(RouteName.profile);
       }
       if (baseRoute.startsWith(RouteName.setting)) {
-        return RouteConstants.getIndexByRoute(RouteName.setting);
+        return Constants.route.getIndexByRoute(RouteName.setting);
       }
-      return RouteConstants.defaultHomeIndex;
+      return Constants.route.defaultHomeIndex;
     }
 
     return index;
   }
 
   int getNextValidIndex(int currentIndex) =>
-      RouteConstants.getNextValidIndex(currentIndex);
+      Constants.route.getIndexByRoute(currentIndex.toString());
 
   int getPreviousValidIndex(int currentIndex) =>
-      RouteConstants.getPreviousValidIndex(currentIndex);
+      Constants.route.getIndexByRoute(currentIndex.toString());
 
-  String? getRouteByIndex(int index) => RouteConstants.getRouteByIndex(index);
+  String? getRouteByIndex(int index) =>
+      Constants.route.getRouteByIndex(index);
 
   bool shouldShowBottomNavBar(String route) =>
-      RouteConstants.shouldShowNavBar(route);
+      Constants.route.shouldShowNavBar(route);
 
-  bool shouldShowappbar(String route) => RouteConstants.shouldShowAppbar(route);
+  bool shouldShowAppbar(String route) =>
+      Constants.route.shouldShowAppbar(route);
 
   bool isHomeRoute(String route) {
     final index = getSelectedIndex(route);
-    return index == RouteConstants.defaultHomeIndex ||
+    return index == Constants.route.defaultHomeIndex ||
         route == RouteName.dashboard ||
         route == '/';
   }

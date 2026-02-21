@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hrm/core/constants/constants.dart';
 
 class AttendanceUtils {
-  AttendanceUtils._(); 
+  AttendanceUtils._();
 
   static String getMonthName(int month) {
     const months = [
@@ -32,25 +32,25 @@ class AttendanceUtils {
   }
 
   static Color getStatusColor(String? status) {
-    if (status == null) return Constants.color.inactiveDayColor;
+    if (status == null) return Constants.color.secondary;
 
     switch (status.toUpperCase()) {
       case 'PRESENT':
-        return Constants.color.presentColor;
+        return Constants.color.success;
       case 'ABSENT':
-        return Constants.color.absentColor;
+        return Constants.color.danger;
       case 'LATE':
-        return Constants.color.lateColor;
+        return Constants.color.orange;
       case 'PENDING':
-        return Constants.color.pendingColor;
+        return Constants.color.grey;
       case 'INPROGRESS':
-        return Constants.color.inprogressColor;
+        return Constants.color.lightblue;
       case 'LEAVE':
-        return Constants.color.leaveColor;
+        return Constants.color.secondary;
       case 'HALFDAY':
-        return Constants.color.halfDayColor;
+        return Constants.color.gold;
       default:
-        return Constants.color.inactiveDayColor;
+        return Constants.color.green;
     }
   }
 

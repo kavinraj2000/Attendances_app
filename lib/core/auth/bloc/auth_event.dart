@@ -46,8 +46,6 @@ class RefreshUserData extends AuthEvent {
   const RefreshUserData();
 }
 
-
-
 class OtpChanged extends AuthEvent {
   final String otp;
 
@@ -61,7 +59,7 @@ class OtpSubmitted extends AuthEvent {
   final String email;
   final int? otp;
 
-  const OtpSubmitted({ this.otp, required this.email});
+  const OtpSubmitted({this.otp, required this.email});
 
   @override
   List<Object?> get props => [otp];

@@ -11,10 +11,7 @@ class LoadAttendanceLogs extends AttendanceLogsEvent {
   final int month;
   final int year;
 
-  const LoadAttendanceLogs({
-    required this.month,
-    required this.year,
-  });
+  const LoadAttendanceLogs({required this.month, required this.year});
 
   @override
   List<Object?> get props => [month, year];
@@ -33,21 +30,16 @@ class ChangeMonth extends AttendanceLogsEvent {
   final int month;
   final int year;
 
-  const ChangeMonth({
-    required this.month,
-    required this.year,
-  });
+  const ChangeMonth({required this.month, required this.year});
 
   @override
   List<Object?> get props => [month, year];
 }
 
-/// Event to refresh the current schedule
 class RefreshSchedule extends AttendanceLogsEvent {
   const RefreshSchedule();
 }
 
-/// Event to clear selected date
 class ClearSelectedDate extends AttendanceLogsEvent {
   const ClearSelectedDate();
 }

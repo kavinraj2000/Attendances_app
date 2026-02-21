@@ -21,7 +21,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutRequested>(_onLogoutRequested);
   }
 
-  // ---------------- CHECK AUTH ----------------
   Future<void> _onCheckAuthStatus(
     CheckAuthStatus event,
     Emitter<AuthState> emit,
@@ -29,10 +28,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final isLoggedIn = await _prefs.isLoggedIn();
 
     if (isLoggedIn) {
-      // User is already logged in, set status to success
       emit(state.copyWith(status: AuthStatus.success));
     } else {
-      // User not logged in, keep initial state
       emit(AuthState.initial());
     }
   }
@@ -42,7 +39,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       state.copyWith(
         email: event.email,
         isEmailValid: _isValidEmail(event.email),
-        // Clear message when user starts typing
         message: '',
       ),
     );
@@ -72,7 +68,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           state.copyWith(
             status: AuthStatus.otpsend,
             email: event.email,
-            otp: '', // Clear any previous OTP
+            otp: '',
             message: 'OTP sent successfully to ${event.email}',
           ),
         );
@@ -96,18 +92,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _onOtpChanged(OtpChanged event, Emitter<AuthState> emit) {
-    emit(state.copyWith(
-      otp: event.otp,
-      // Clear any previous error messages when user starts typing
-      message: '',
-    ));
+    emit(state.copyWith(otp: event.otp, message: ''));
   }
 
   Future<void> _onOtpSubmitted(
     OtpSubmitted event,
     Emitter<AuthState> emit,
   ) async {
-    // Validate OTP length
     if (event.otp.toString().length != 4) {
       emit(
         state.copyWith(
@@ -118,7 +109,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    // Validate email
     if (event.email.isEmpty || !_isValidEmail(event.email)) {
       emit(
         state.copyWith(
@@ -133,12 +123,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       log.d('_onOtpSubmitted: ${event.email} :::: ${event.otp}');
-      
+
       final res = await _authRepo.verfifyOTP(
         email: event.email,
         otp: event.otp.toString(),
       );
-      
+
       if (res.success == true) {
         await _prefs.setLoggedIn(true);
 
@@ -151,7 +141,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(
           state.copyWith(
-            status: AuthStatus.otpsend, // Keep user on OTP screen
+            status: AuthStatus.otpsend,
             message: res.message ?? 'Invalid OTP. Please try again.',
           ),
         );
@@ -160,7 +150,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       log.e('OTP verification error: $e');
       emit(
         state.copyWith(
-          status: AuthStatus.otpsend, // Keep user on OTP screen
+          status: AuthStatus.otpsend,
           message: 'Error: ${e.toString()}',
         ),
       );

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/core/model/leave_req_model.dart';
 import 'package:hrm/core/repo/api_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
@@ -46,7 +45,6 @@ class LeaveFormRepository {
     );
   }
 
-  /// Creates a new leave request
   Future<LeaveRequestModel> leaverequest({
     required String leaveType,
     required String reason,
@@ -186,7 +184,6 @@ class LeaveFormRepository {
         );
       }
 
-      // Handle specific error status codes
       if (response.statusCode == 400) {
         final errorMessage =
             response.data?['message'] ??

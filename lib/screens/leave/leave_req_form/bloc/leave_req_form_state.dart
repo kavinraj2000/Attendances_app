@@ -9,7 +9,7 @@ class LeaveReqFormState extends Equatable {
   final List<LeaveRequestModel> updaterequestmodel;
   final List<AttendanceModel>? attendanceList;
   final LeaveRequestModel? leaveRequest;
-  final Map<String,dynamic> ? initialvalue;
+  final Map<String, dynamic>? initialvalue;
 
   const LeaveReqFormState({
     required this.leaverequestmodel,
@@ -44,7 +44,7 @@ class LeaveReqFormState extends Equatable {
 
   LeaveReqFormState copyWith({
     LeaveReqFormStaus? status,
-    Map<String,dynamic> ? initialvalue,
+    Map<String, dynamic>? initialvalue,
     String? message,
     List<LeaveRequestModel>? leaverequestmodel,
     List<LeaveRequestModel>? updaterequestmodel,

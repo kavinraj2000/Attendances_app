@@ -23,8 +23,6 @@ class _AuthloginViewContent extends StatelessWidget {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-    
-
           if (state.status == AuthStatus.otpsend && state.email.isNotEmpty) {
             ToastUtil.otpSent(context: context);
 
@@ -166,7 +164,7 @@ class _LogoWidget extends StatelessWidget {
   }
 }
 
-class _EmailField extends StatefulWidget {
+class _EmailField extends StatelessWidget {
   final bool isLoading;
   final bool isEmailValid;
   final String currentEmail;
@@ -178,31 +176,13 @@ class _EmailField extends StatefulWidget {
   });
 
   @override
-  State<_EmailField> createState() => _EmailFieldState();
-}
-
-class _EmailFieldState extends State<_EmailField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.currentEmail);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return TextFormField(
-      controller: _controller,
-      enabled: !widget.isLoading,
+      enabled: !isLoading,
+      key: const Key('emailField'),
       keyboardType: TextInputType.emailAddress,
       style: const TextStyle(fontSize: 16),
+      initialValue: currentEmail,
       decoration: InputDecoration(
         labelText: 'Email',
         prefixIcon: const Icon(Icons.email_outlined),
@@ -228,7 +208,7 @@ class _EmailFieldState extends State<_EmailField> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
-        errorText: _controller.text.isNotEmpty && !widget.isEmailValid
+        errorText: currentEmail.isNotEmpty && !isEmailValid
             ? 'Enter a valid email'
             : null,
       ),
@@ -269,6 +249,7 @@ class _AuthButton extends StatelessWidget {
             : [],
       ),
       child: ElevatedButton(
+        key: const Key('sendOTPButton'),
         onPressed: isLoading || !isFormValid
             ? null
             : () {

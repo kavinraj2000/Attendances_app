@@ -97,7 +97,6 @@ class AuthRepo {
         final AuthModel = LoginModel.fromJson(data);
 
         if (AuthModel.success == true && AuthModel.token != null) {
-          // Save user data
           if (AuthModel.data != null) {
             try {
               await pref.saveUserData(AuthModel.data!);
@@ -107,23 +106,19 @@ class AuthRepo {
             }
           }
 
-          // Save token
           if (AuthModel.token != null) {
             await pref.saveToken(AuthModel.token!);
             log.d('Token saved to SharedPreferences');
           }
 
-          // Save user ID
           if (AuthModel.userId != null) {
             await pref.saveUserId(AuthModel.userId!);
             log.d('User ID saved to SharedPreferences');
           }
 
-          // Save logged in status
           await pref.setLoggedIn(true);
           log.d('Auth status set to true');
 
-          // Save success status
           await pref.saveAuthStatus('Success');
           log.d('Auth status "Success" saved to SharedPreferences');
         }

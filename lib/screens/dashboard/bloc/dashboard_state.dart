@@ -30,14 +30,13 @@ class DashboardState extends Equatable {
   final String? errorMessage;
 
   factory DashboardState.initial() => const DashboardState(
-        loadingStatus: DashboardLoadingStatus.initial,
-        isLoading: false,
-        checkInStatus: CheckInStatus.notCheckedIn,
-        userName: '',
-        attendanceList: [],
-      );
+    loadingStatus: DashboardLoadingStatus.initial,
+    isLoading: false,
+    checkInStatus: CheckInStatus.notCheckedIn,
+    userName: '',
+    attendanceList: [],
+  );
 
-  // Formatted helpers consumed directly by the UI
   String? get checkInTimeFormatted =>
       checkInTime != null ? DateFormat('hh:mm a').format(checkInTime!) : null;
 
@@ -55,8 +54,6 @@ class DashboardState extends Equatable {
     DateTime? selectedDate,
     DateTime? focusedMonth,
     String? errorMessage,
-    // Explicit clear flags — needed because copyWith can't distinguish
-    // "pass null to clear" vs "don't change the field"
     bool clearCheckInTime = false,
     bool clearCheckOutTime = false,
     bool clearError = false,
@@ -68,8 +65,9 @@ class DashboardState extends Equatable {
       userName: userName ?? this.userName,
       attendanceList: attendanceList ?? this.attendanceList,
       checkInTime: clearCheckInTime ? null : (checkInTime ?? this.checkInTime),
-      checkOutTime:
-          clearCheckOutTime ? null : (checkOutTime ?? this.checkOutTime),
+      checkOutTime: clearCheckOutTime
+          ? null
+          : (checkOutTime ?? this.checkOutTime),
       selectedDate: selectedDate ?? this.selectedDate,
       focusedMonth: focusedMonth ?? this.focusedMonth,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -78,15 +76,15 @@ class DashboardState extends Equatable {
 
   @override
   List<Object?> get props => [
-        loadingStatus,
-        isLoading,
-        checkInStatus,
-        userName,
-        attendanceList,
-        checkInTime,
-        checkOutTime,
-        selectedDate,
-        focusedMonth,
-        errorMessage,
-      ];
+    loadingStatus,
+    isLoading,
+    checkInStatus,
+    userName,
+    attendanceList,
+    checkInTime,
+    checkOutTime,
+    selectedDate,
+    focusedMonth,
+    errorMessage,
+  ];
 }

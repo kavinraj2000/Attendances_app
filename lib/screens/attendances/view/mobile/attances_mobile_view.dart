@@ -97,7 +97,6 @@ class AttendanceLogsScreen extends StatelessWidget {
   }
 }
 
-
 class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -158,7 +157,6 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-
 class _TopBar extends StatelessWidget {
   final int month, year;
   final VoidCallback onPrev, onNext;
@@ -183,7 +181,6 @@ class _TopBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: _kCard,
               borderRadius: BorderRadius.circular(30),
-             
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -251,7 +248,6 @@ class _NavBtn extends StatelessWidget {
   }
 }
 
-
 class _CalendarCard extends StatelessWidget {
   final int month, year;
   final List<AttendanceModel> records;
@@ -281,7 +277,6 @@ class _CalendarCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _kCard,
         borderRadius: BorderRadius.circular(24),
-      
       ),
       child: Column(
         children: [
@@ -432,7 +427,6 @@ class _CalendarCard extends StatelessWidget {
   }
 }
 
-
 class _DayDetailPanel extends StatelessWidget {
   final DateTime selectedDay;
   final AttendanceModel? selectedRecord;
@@ -533,7 +527,6 @@ class _DayDetailPanel extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-             
             ],
           ),
         ),
@@ -545,7 +538,6 @@ class _DayDetailPanel extends StatelessWidget {
                   children: [
                     _AttendanceRecordTile(record: selectedRecord!),
                     const SizedBox(height: 14),
-                    // _MonthlySummaryRow(summary: summary),
                   ],
                 ),
         ),
@@ -739,7 +731,6 @@ class _TimeChip extends StatelessWidget {
     );
   }
 }
-
 
 /* ─── empty state ─── */
 class _EmptyDay extends StatelessWidget {

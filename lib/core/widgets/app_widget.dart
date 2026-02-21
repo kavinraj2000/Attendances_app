@@ -35,8 +35,8 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 class _CustomAppBarState extends State<CustomAppBar> {
   @override
   Widget build(BuildContext context) {
-    final primary = Constants.color.lightColors['primary']!;
-    final secondary = Constants.color.lightColors['secondary']!;
+    final primary = Constants.color.primary;
+    final secondary = Constants.color.secondary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -54,7 +54,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
           children: [
             Text(
               'HRM',
-              style: Constants.app.headerwhite.copyWith(fontSize: 30),
+              style: Constants.textstyke.headerWhite.copyWith(fontSize: 30),
             ),
 
             Row(
@@ -84,7 +84,6 @@ class _CustomAppBarState extends State<CustomAppBar> {
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       tooltip: 'User menu',
-      child: _buildUserAvatar(),
       itemBuilder: (context) => [
         _buildProfileMenuItem(),
         _buildLeaveMenuItem(),
@@ -92,13 +91,14 @@ class _CustomAppBarState extends State<CustomAppBar> {
         _buildLogoutMenuItem(),
       ],
       onSelected: _handleMenuSelection,
+      child: _buildUserAvatar(),
     );
   }
 
   Widget _buildUserAvatar() {
     return CircleAvatar(
       radius: 18,
-      backgroundColor: Constants.color.lightColors['gray']!,
+      backgroundColor: Constants.color.grey,
       child: Text(
         widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : '?',
         style: const TextStyle(
@@ -117,7 +117,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
         children: [
           Icon(
             Icons.person_outline,
-            color: Constants.color.lightColors['primary'],
+            color: Constants.color.primary,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -134,7 +134,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
         children: [
           Icon(
             Icons.event_note_outlined,
-            color: Constants.color.lightColors['primary'],
+            color: Constants.color.primary,
             size: 20,
           ),
           const SizedBox(width: 12),

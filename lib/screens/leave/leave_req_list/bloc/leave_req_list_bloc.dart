@@ -14,7 +14,6 @@ class LeaveReqListBloc extends Bloc<LeaveReqListEvent, LeaveReqListState> {
 
   LeaveReqListBloc(this.repo) : super(LeaveReqListState.initial()) {
     on<InitialLeaverequestListevent>(_onInitialLeaveList);
-    // on<Updateleaverequestevent>(_onupdateLeaveList);
   }
 
   Future<void> _onInitialLeaveList(
@@ -23,16 +22,12 @@ class LeaveReqListBloc extends Bloc<LeaveReqListEvent, LeaveReqListState> {
   ) async {
     try {
       emit(state.copyWith(status: LeaveReqListStatus.loading));
-      
 
       final leaveList = await repo.leaverequest();
       log.d('Leave list loaded: ${leaveList.length}');
 
       emit(
-        state.copyWith(
-          status: LeaveReqListStatus.loaded,
-          leaveList: leaveList,
-        ),
+        state.copyWith(status: LeaveReqListStatus.loaded, leaveList: leaveList),
       );
     } catch (e, stackTrace) {
       log.e('Leave list load failed', error: e, stackTrace: stackTrace);
@@ -45,6 +40,4 @@ class LeaveReqListBloc extends Bloc<LeaveReqListEvent, LeaveReqListState> {
       );
     }
   }
-
- 
 }

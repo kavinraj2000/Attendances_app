@@ -38,55 +38,53 @@ class ImageService {
   }
 
   Future<File?> _compressImage(XFile file) async {
-  try {
-    final user = await pref.getUserData();
-    final checkInString = await pref.getCheckInTime();
+    try {
+      final user = await pref.getUserData();
+      final checkInString = await pref.getCheckInTime();
 
-    if (user == null || user.employeeId == null) {
-      throw Exception('User session expired. Please login again');
-    }
-
-    String checkStatus = 'Checkin';
-
-    if (checkInString != null) {
-      final checkInTime = DateTime.parse(checkInString.toString());
-      final now = DateTime.now();
-
-      final isSameDay =
-          checkInTime.year == now.year &&
-          checkInTime.month == now.month &&
-          checkInTime.day == now.day;
-
-      if (isSameDay) {
-        checkStatus = 'CheckOut';
+      if (user == null || user.employeeId == null) {
+        throw Exception('User session expired. Please login again');
       }
-    }
 
-    final fileName =
-        '${user.username}_${user.employeeId}_${checkStatus}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String checkStatus = 'Checkin';
 
-    // ✅ Get temp directory
-    final dir = await getTemporaryDirectory();
-    final targetPath = '${dir.path}/$fileName';
+      if (checkInString != null) {
+        final checkInTime = DateTime.parse(checkInString.toString());
+        final now = DateTime.now();
 
-    final compressed = await FlutterImageCompress.compressAndGetFile(
-      file.path,
-      targetPath,
-      quality: 65,
-      format: CompressFormat.jpeg,
-    );
+        final isSameDay =
+            checkInTime.year == now.year &&
+            checkInTime.month == now.month &&
+            checkInTime.day == now.day;
 
-    if (compressed == null) {
-      log.w("Compression failed, returning original file");
+        if (isSameDay) {
+          checkStatus = 'CheckOut';
+        }
+      }
+
+      final fileName =
+          '${user.username}_${user.employeeId}_${checkStatus}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final dir = await getTemporaryDirectory();
+      final targetPath = '${dir.path}/$fileName';
+
+      final compressed = await FlutterImageCompress.compressAndGetFile(
+        file.path,
+        targetPath,
+        quality: 65,
+        format: CompressFormat.jpeg,
+      );
+
+      if (compressed == null) {
+        log.w("Compression failed, returning original file");
+        return File(file.path);
+      }
+
+      log.i("Image compressed successfully: ${compressed.path}");
+      return File(compressed.path);
+    } catch (e) {
+      log.e("Compression error: $e");
       return File(file.path);
     }
-
-    log.i("Image compressed successfully: ${compressed.path}");
-    return File(compressed.path);
-  } catch (e) {
-    log.e("Compression error: $e");
-    return File(file.path); // safer fallback
   }
-}
-
 }

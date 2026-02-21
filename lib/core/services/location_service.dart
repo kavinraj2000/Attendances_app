@@ -40,7 +40,8 @@ class LocationService {
   static String _formatPlacemark(Placemark place) {
     final parts = <String>[];
 
-    if (place.subThoroughfare != null) parts.add('No: ${place.subThoroughfare}');
+    if (place.subThoroughfare != null)
+      parts.add('No: ${place.subThoroughfare}');
     if (place.thoroughfare != null) parts.add(place.thoroughfare!);
     if (place.subLocality != null) parts.add(place.subLocality!);
     if (place.locality != null) parts.add(place.locality!);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/app/route.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
@@ -22,9 +21,7 @@ class App extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             themeMode: ThemeMode.system,
             theme: AppTheme.lightTheme,
-            routerConfig: Routes(
-              context.read<AuthBloc>(), // ✅ SAME INSTANCE
-            ).router,
+            routerConfig: Routes(context.read<AuthBloc>()).router,
             builder: (context, child) {
               return Util(child: child);
             },

@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/model/attances_model.dart';
-import 'package:hrm/core/model/leave_list_model.dart';
 import 'package:hrm/core/model/leave_req_model.dart';
 import 'package:hrm/screens/leave/leave_req_form/repo/leave_req_form_repo.dart';
 import 'package:logger/logger.dart';

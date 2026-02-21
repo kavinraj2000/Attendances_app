@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/model/leave_list_model.dart';
-import 'package:hrm/core/model/leave_req_model.dart';
 import 'package:hrm/core/repo/api_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
 import 'package:logger/logger.dart';
@@ -89,8 +88,6 @@ class LeaveReqListRepo {
       throw _handleDioError(e, 'Failed to load leave requests');
     }
   }
-
-
 
   Exception _handleDioError(DioException error, String defaultMessage) {
     if (error.type == DioExceptionType.connectionTimeout ||

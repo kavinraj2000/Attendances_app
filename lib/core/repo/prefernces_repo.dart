@@ -56,7 +56,6 @@ class PreferencesRepository {
     }
   }
 
-  /// Returns true if the user has checked out today.
   Future<bool> getIsCheckedOut() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -68,7 +67,6 @@ class PreferencesRepository {
     }
   }
 
-  /// Returns the locally stored check-in time for today, or null.
   Future<DateTime?> getCheckInTime() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -81,7 +79,6 @@ class PreferencesRepository {
     }
   }
 
-  /// Returns the locally stored check-out time for today, or null.
   Future<DateTime?> getCheckOutTime() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -94,7 +91,6 @@ class PreferencesRepository {
     }
   }
 
-  /// Clears all attendance state (new day / logout).
   Future<void> clearAttendanceState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -109,7 +105,6 @@ class PreferencesRepository {
     }
   }
 
-  // Resets stored attendance if the saved date is not today.
   Future<void> _resetAttendanceIfNewDay(SharedPreferences prefs) async {
     final savedDate = prefs.getString(_checkInDateKey);
     if (savedDate != null && savedDate != _todayString()) {
@@ -122,10 +117,6 @@ class PreferencesRepository {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // GENERAL
-  // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> clearAllData() async {
     try {
@@ -151,10 +142,6 @@ class PreferencesRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_checkInStartKey);
   }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // USER DATA
-  // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> saveUserData(LoginData userData) async {
     final prefs = await SharedPreferences.getInstance();
@@ -347,10 +334,6 @@ class PreferencesRepository {
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // LOGOUT
-  // ══════════════════════════════════════════════════════════════════════════
-
   Future<void> logout() async {
     try {
       await clearAllStorage();
@@ -370,10 +353,6 @@ class PreferencesRepository {
       log.e('Error clearing storage: $e');
     }
   }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // DEBUG
-  // ══════════════════════════════════════════════════════════════════════════
 
   Future<Map<String, dynamic>> getDebugInfo() async {
     try {

@@ -1,11 +1,6 @@
 part of 'attendances_bloc.dart';
 
-enum AttendanceLogStatus {
-  initial,
-  loading,
-  success,
-  error,
-}
+enum AttendanceLogStatus { initial, loading, success, error }
 
 class AttendanceLogsState extends Equatable {
   final AttendanceLogStatus status;
@@ -59,30 +54,28 @@ class AttendanceLogsState extends Equatable {
     return AttendanceLogsState(
       status: status ?? this.status,
       scheduleData: scheduleData ?? this.scheduleData,
-      attendanceSummary:
-          attendanceSummary ?? this.attendanceSummary,
+      attendanceSummary: attendanceSummary ?? this.attendanceSummary,
       selectedDate: selectedDate ?? this.selectedDate,
       currentMonth: currentMonth ?? this.currentMonth,
       currentYear: currentYear ?? this.currentYear,
       currentDate: currentDate ?? this.currentDate,
       errorMessage: errorMessage,
       errorCode: errorCode,
-      clearSelectedDate:
-          clearSelectedDate ?? false,
+      clearSelectedDate: clearSelectedDate ?? false,
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        scheduleData,
-        attendanceSummary,
-        selectedDate,
-        currentMonth,
-        currentYear,
-        currentDate,
-        errorMessage,
-        errorCode,
-        clearSelectedDate,
-      ];
+    status,
+    scheduleData,
+    attendanceSummary,
+    selectedDate,
+    currentMonth,
+    currentYear,
+    currentDate,
+    errorMessage,
+    errorCode,
+    clearSelectedDate,
+  ];
 }

@@ -21,17 +21,18 @@ class AttendanceView extends StatelessWidget {
         ),
       ],
       child: BlocProvider<AttendanceLogsBloc>(
-        create: (context) => AttendanceLogsBloc(
-          repository: AttendancesRepo(
-            context.read<LocalDBRepository>(),
-            context.read<PreferencesRepository>(),
-          ),
-        )..add(
-            LoadAttendanceLogs(
-              month: DateTime.now().month,
-              year: DateTime.now().year,
+        create: (context) =>
+            AttendanceLogsBloc(
+              repository: AttendancesRepo(
+                context.read<LocalDBRepository>(),
+                context.read<PreferencesRepository>(),
+              ),
+            )..add(
+              LoadAttendanceLogs(
+                month: DateTime.now().month,
+                year: DateTime.now().year,
+              ),
             ),
-          ),
         child: const AttendanceLogsScreen(),
       ),
     );

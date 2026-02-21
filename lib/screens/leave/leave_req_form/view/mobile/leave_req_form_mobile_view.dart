@@ -47,10 +47,7 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
           }
 
           if (state.status == LeaveReqFormStaus.failure) {
-            ToastUtil.error(
-              context: context,
-              message: state.message,
-            );
+            ToastUtil.error(context: context, message: state.message);
           }
         },
         child: BlocBuilder<LeaveReqFormBloc, LeaveReqFormState>(
@@ -147,7 +144,6 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
                 name: 'reason',
                 maxLines: 4,
                 decoration: _decoration('Enter reason'),
-               
               ),
 
               const SizedBox(height: 32),
@@ -185,8 +181,7 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
 
     final start =
         _formKey.currentState!.fields['start_date']?.value as DateTime?;
-    final end =
-        _formKey.currentState!.fields['end_date']?.value as DateTime?;
+    final end = _formKey.currentState!.fields['end_date']?.value as DateTime?;
 
     if (start != null && end != null) {
       if (end.isBefore(start)) {
@@ -211,8 +206,7 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
 
     final v = _formKey.currentState!.value;
 
-    if ((v['end_date'] as DateTime)
-        .isBefore(v['start_date'] as DateTime)) {
+    if ((v['end_date'] as DateTime).isBefore(v['start_date'] as DateTime)) {
       ToastUtil.error(
         context: context,
         message: 'End date cannot be before start date',
@@ -244,10 +238,7 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
         builder: (_) => AlertDialog(
           title: const Text('Discard changes?'),
           actions: [
-            TextButton(
-              onPressed: () => context.pop(),
-              child: const Text('No'),
-            ),
+            TextButton(onPressed: () => context.pop(), child: const Text('No')),
             TextButton(
               onPressed: () {
                 context.pop();
@@ -264,23 +255,19 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
   }
 
   Widget _section(String title, bool required) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Text(title,
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-            if (required)
-              const Text('*', style: TextStyle(color: Colors.red)),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        if (required) const Text('*', style: TextStyle(color: Colors.red)),
+      ],
+    ),
+  );
 
   InputDecoration _decoration(String hint) => InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      );
+    hintText: hint,
+    filled: true,
+    fillColor: Colors.grey.shade50,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+  );
 }

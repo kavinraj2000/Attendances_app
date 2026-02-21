@@ -10,7 +10,7 @@ part 'attendances_state.dart';
 class AttendanceLogsBloc
     extends Bloc<AttendanceLogsEvent, AttendanceLogsState> {
   final AttendancesRepo repository;
-  final log=Logger();
+  final log = Logger();
 
   AttendanceLogsBloc({required this.repository})
     : super(AttendanceLogsState.initial()) {
@@ -90,7 +90,6 @@ class AttendanceLogsBloc
     }
   }
 
-
   List<AttendanceModel> _filterByMonth(
     List<AttendanceModel> data,
     int month,
@@ -138,7 +137,7 @@ class AttendanceLogsBloc
       'ABSENT': absent,
       'LATE': halfDay,
       'LEAVE': leave,
-      'INPROGRESS':pending,
+      'INPROGRESS': pending,
     };
   }
 

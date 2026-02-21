@@ -23,29 +23,27 @@ class DashboardMobileView extends StatelessWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: Constants.color.surfaceWhite,
+        backgroundColor: Constants.color.white,
         body: SafeArea(
           child: BlocBuilder<DashboardBloc, DashboardState>(
             builder: (context, state) {
               return RefreshIndicator(
-                color: Constants.color.leaveColor,
+                color: Constants.color.lightblue,
                 onRefresh: () async {
                   context.read<DashboardBloc>().add(RefreshDashboardData());
                 },
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: Constants.app.spacingL,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: Constants.size.l),
                   child: Column(
                     children: [
-                      SizedBox(height: Constants.app.spacingL),
+                      SizedBox(height: Constants.size.l),
                       _GreetingCard(userName: state.userName),
-                      SizedBox(height: Constants.app.spacingL),
+                      SizedBox(height: Constants.size.l),
                       _DateTimeCard(state: state),
-                      SizedBox(height: Constants.app.spacingL),
+                      SizedBox(height: Constants.size.l),
                       _AttendanceSection(state: state),
-                      SizedBox(height: Constants.app.spacingXxl),
+                      SizedBox(height: Constants.size.l),
                     ],
                   ),
                 ),
@@ -68,7 +66,7 @@ class _GreetingCard extends StatelessWidget {
     final greetingData = GreetingData.getGreetingData();
 
     return Container(
-      padding: EdgeInsets.all(Constants.app.spacingL),
+      padding: EdgeInsets.all(Constants.size.l),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -79,7 +77,7 @@ class _GreetingCard extends StatelessWidget {
             Color.fromARGB(255, 143, 196, 240),
           ],
         ),
-        borderRadius: BorderRadius.circular(Constants.app.borderRadiusXl),
+        borderRadius: BorderRadius.circular(Constants.size.radiusL),
       ),
       child: Stack(
         children: [
@@ -123,21 +121,25 @@ class _GreetingCard extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Image.asset(greetingData.image, height: 20, width: 20),
+                        const SizedBox(width: 12),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      userName.isNotEmpty ? userName : 'Guest',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          userName.isNotEmpty ? userName : 'Guest',
+                          style: const TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Image.asset(greetingData.image, height: 60, width: 50),
+                      ],
                     ),
                   ],
                 ),
@@ -149,7 +151,6 @@ class _GreetingCard extends StatelessWidget {
     );
   }
 }
-
 
 class _DateTimeCard extends StatelessWidget {
   const _DateTimeCard({required this.state});
@@ -169,7 +170,7 @@ class _DateTimeCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [Colors.white, Color(0xFFF5F7FA)],
             ),
-            borderRadius: BorderRadius.circular(Constants.app.borderRadiusXl),
+            borderRadius: BorderRadius.circular(Constants.size.l),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
@@ -192,8 +193,8 @@ class _DateTimeCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Constants.color.accentTeal.withOpacity(0.08),
-                        Constants.color.accentTeal.withOpacity(0.0),
+                        Constants.color.lightblue.withOpacity(0.08),
+                        Constants.color.lightblue.withOpacity(0.0),
                       ],
                     ),
                   ),
@@ -209,8 +210,8 @@ class _DateTimeCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Constants.color.accentOrange.withOpacity(0.08),
-                        Constants.color.accentOrange.withOpacity(0.0),
+                        Constants.color.orange.withOpacity(0.08),
+                        Constants.color.orange.withOpacity(0.0),
                       ],
                     ),
                   ),
@@ -219,7 +220,7 @@ class _DateTimeCard extends StatelessWidget {
               Column(
                 children: [
                   Padding(
-                    padding: EdgeInsets.all(Constants.app.spacingL),
+                    padding: EdgeInsets.all(Constants.size.l),
                     child: Row(
                       children: [
                         Expanded(child: _DateSection(now: now)),
@@ -232,7 +233,7 @@ class _DateTimeCard extends StatelessWidget {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                Constants.color.dividerColor,
+                                Constants.color.divider,
                                 Colors.transparent,
                               ],
                             ),
@@ -244,21 +245,19 @@ class _DateTimeCard extends StatelessWidget {
                   ),
                   Container(
                     height: 1,
-                    margin: EdgeInsets.symmetric(
-                      horizontal: Constants.app.spacingL,
-                    ),
+                    margin: EdgeInsets.symmetric(horizontal: Constants.size.l),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Constants.color.dividerColor.withOpacity(0.5),
+                          Constants.color.divider.withOpacity(0.5),
                           Colors.transparent,
                         ],
                       ),
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.all(Constants.app.spacingL),
+                    padding: EdgeInsets.all(Constants.size.l),
                     child: Row(
                       children: [
                         Expanded(
@@ -268,7 +267,7 @@ class _DateTimeCard extends StatelessWidget {
                             color: const Color(0xFF10B981),
                           ),
                         ),
-                        SizedBox(width: Constants.app.spacingM),
+                        SizedBox(width: Constants.size.m),
                         Expanded(
                           child: _AttendanceInfoChip(
                             label: 'Check Out',
@@ -302,11 +301,9 @@ class _DateSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Constants.color.accentPurple.withOpacity(0.15),
-                Constants.color.accentPurple.withOpacity(0.08),
-              ],
+              colors: [Constants.color.orange, Constants.color.gold],
             ),
+
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -315,14 +312,14 @@ class _DateSection extends StatelessWidget {
               Icon(
                 Icons.calendar_today_rounded,
                 size: 14,
-                color: Constants.color.accentPurple,
+                color: Constants.color.white,
               ),
               const SizedBox(width: 6),
               Text(
                 DateFormat('EEEE').format(now).toUpperCase(),
                 style: TextStyle(
                   fontSize: 11,
-                  color: Constants.color.accentPurple,
+                  color: Constants.color.white,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.2,
                 ),
@@ -335,7 +332,7 @@ class _DateSection extends StatelessWidget {
           DateFormat('dd').format(now),
           style: TextStyle(
             fontSize: 56,
-            color: Constants.color.textPrimary,
+            color: Constants.color.primary,
             fontWeight: FontWeight.w800,
             height: 1,
             letterSpacing: -2,
@@ -346,7 +343,7 @@ class _DateSection extends StatelessWidget {
           DateFormat('MMM yyyy').format(now),
           style: TextStyle(
             fontSize: 16,
-            color: Constants.color.textSecondary,
+            color: Constants.color.secondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -368,7 +365,7 @@ class _TimeSection extends StatelessWidget {
           DateFormat('HH:mm').format(now),
           style: TextStyle(
             fontSize: 56,
-            color: Constants.color.textPrimary,
+            color: Constants.color.primary,
             fontWeight: FontWeight.w800,
             height: 1,
             letterSpacing: -2,
@@ -379,7 +376,7 @@ class _TimeSection extends StatelessWidget {
           '${DateFormat('ss').format(now)} sec',
           style: TextStyle(
             fontSize: 16,
-            color: Constants.color.textSecondary,
+            color: Constants.color.secondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -404,7 +401,7 @@ class _AttendanceInfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Constants.app.borderRadiusM),
+        borderRadius: BorderRadius.circular(Constants.size.radiusM),
         border: Border.all(color: color.withOpacity(0.2), width: 1.5),
       ),
       child: Column(
@@ -413,7 +410,7 @@ class _AttendanceInfoChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Constants.color.textSecondary,
+              color: Constants.color.secondary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -422,7 +419,7 @@ class _AttendanceInfoChip extends StatelessWidget {
             time,
             style: TextStyle(
               fontSize: 18,
-              color: Constants.color.textPrimary,
+              color: Constants.color.primary,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.5,
             ),
@@ -432,8 +429,6 @@ class _AttendanceInfoChip extends StatelessWidget {
     );
   }
 }
-
-
 
 class _AttendanceSection extends StatelessWidget {
   const _AttendanceSection({required this.state});
@@ -445,7 +440,7 @@ class _AttendanceSection extends StatelessWidget {
     final isCheckedIn = state.checkInStatus == CheckInStatus.checkedIn;
 
     return Container(
-      padding: EdgeInsets.all(Constants.app.spacingXl),
+      padding: EdgeInsets.all(Constants.size.l),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -454,13 +449,13 @@ class _AttendanceSection extends StatelessWidget {
               ? [const Color(0xFFFFEBEE), const Color(0xFFFFF5F5)]
               : [const Color(0xFFF3F0FF), const Color(0xFFF8F7FF)],
         ),
-        borderRadius: BorderRadius.circular(Constants.app.borderRadiusXl),
+        borderRadius: BorderRadius.circular(Constants.size.radiusL),
         boxShadow: [
           BoxShadow(
             color:
                 (isCheckedIn
-                        ? Constants.color.checkOutGradientStart
-                        : Constants.color.accentPurple)
+                        ? Constants.color.danger
+                        : Constants.color.lightblue)
                     .withOpacity(0.15),
             blurRadius: 25,
             offset: const Offset(0, 8),
@@ -469,8 +464,8 @@ class _AttendanceSection extends StatelessWidget {
         ],
         border: Border.all(
           color: isCheckedIn
-              ? Constants.color.checkOutGradientStart.withOpacity(0.2)
-              : Constants.color.accentPurple.withOpacity(0.2),
+              ? Constants.color.danger.withOpacity(0.2)
+              : Constants.color.lightblue.withOpacity(0.2),
           width: 2,
         ),
       ),
@@ -487,8 +482,8 @@ class _AttendanceSection extends StatelessWidget {
                 gradient: RadialGradient(
                   colors: [
                     (isCheckedIn
-                            ? Constants.color.checkOutGradientStart
-                            : Constants.color.accentPurple)
+                            ? Constants.color.danger
+                            : Constants.color.lightblue)
                         .withOpacity(0.1),
                     Colors.transparent,
                   ],
@@ -501,9 +496,9 @@ class _AttendanceSection extends StatelessWidget {
               Text(
                 isCheckedIn ? "You're Checked In" : 'Ready to Start Your Day?',
                 style: TextStyle(
-                  fontSize: Constants.app.fontSizeL,
+                  fontSize: Constants.size.l,
                   fontWeight: FontWeight.w700,
-                  color: Constants.color.textPrimary,
+                  color: Constants.color.primary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -512,12 +507,12 @@ class _AttendanceSection extends StatelessWidget {
                     ? "Tap to check out when you're done"
                     : 'Tap the button below to check in',
                 style: TextStyle(
-                  fontSize: Constants.app.fontSizeS,
-                  color: Constants.color.textSecondary,
+                  fontSize: Constants.size.s,
+                  color: Constants.color.secondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: Constants.app.spacingXl),
+              SizedBox(height: Constants.size.l),
               _CheckInButton(
                 isCheckedIn: isCheckedIn,
                 isLoading: state.isLoading,
@@ -530,8 +525,6 @@ class _AttendanceSection extends StatelessWidget {
   }
 }
 
-
-
 class _CheckInButton extends StatelessWidget {
   const _CheckInButton({required this.isCheckedIn, required this.isLoading});
 
@@ -541,11 +534,8 @@ class _CheckInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gradientColors = isCheckedIn
-        ? [
-            Constants.color.checkOutGradientStart,
-            Constants.color.checkOutGradientEnd,
-          ]
-        : [Constants.color.accentPurple, const Color(0xFF8B7FFF)];
+        ? [Constants.color.danger, Constants.color.white]
+        : [Constants.color.lightblue, const Color(0xFF8B7FFF)];
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -563,8 +553,8 @@ class _CheckInButton extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Container(
-                width: Constants.app.checkInButtonSize + 20,
-                height: Constants.app.checkInButtonSize + 20,
+                width: Constants.size.checkInButtonSize + 20,
+                height: Constants.size.checkInButtonSize + 20,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
@@ -576,8 +566,8 @@ class _CheckInButton extends StatelessWidget {
                 ),
               ),
               Container(
-                width: Constants.app.checkInButtonSize,
-                height: Constants.app.checkInButtonSize,
+                width: Constants.size.checkInButtonSize,
+                height: Constants.size.checkInButtonSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(

@@ -15,20 +15,18 @@ class ToastUtil {
     ).show(context);
   }
 
-  static void otpSent({
-    required BuildContext context,
-  }) {
+  static void otpSent({required BuildContext context}) {
     CherryToast.info(
       title: const Text("OTP Sent"),
-      description: const Text("OTP has been sent to your registered mobile number"),
+      description: const Text(
+        "OTP has been sent to your registered mobile number",
+      ),
       animationType: AnimationType.fromRight,
       autoDismiss: true,
     ).show(context);
   }
 
-  static void checkIn({
-    required BuildContext context,
-  }) {
+  static void checkIn({required BuildContext context}) {
     CherryToast.success(
       title: const Text("Check-In"),
       description: const Text("You have successfully checked in"),
@@ -37,9 +35,7 @@ class ToastUtil {
     ).show(context);
   }
 
-  static void checkOut({
-    required BuildContext context,
-  }) {
+  static void checkOut({required BuildContext context}) {
     CherryToast.info(
       title: const Text("Check-Out"),
       description: const Text("You have successfully checked out"),
@@ -48,10 +44,7 @@ class ToastUtil {
     ).show(context);
   }
 
-  static void error({
-    required BuildContext context,
-    required String message,
-  }) {
+  static void error({required BuildContext context, required String message}) {
     CherryToast.error(
       title: const Text("Error"),
       description: Text(message),
