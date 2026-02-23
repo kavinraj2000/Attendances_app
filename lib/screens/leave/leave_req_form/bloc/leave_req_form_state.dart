@@ -10,6 +10,7 @@ class LeaveReqFormState extends Equatable {
   final List<AttendanceModel>? attendanceList;
   final LeaveRequestModel? leaveRequest;
   final Map<String, dynamic>? initialvalue;
+  final List<LeaveModel>? leavetype;
 
   const LeaveReqFormState({
     required this.leaverequestmodel,
@@ -19,6 +20,7 @@ class LeaveReqFormState extends Equatable {
     required this.initialvalue,
     this.attendanceList,
     this.leaveRequest,
+    this.leavetype,
   });
 
   factory LeaveReqFormState.initial() {
@@ -30,6 +32,7 @@ class LeaveReqFormState extends Equatable {
       attendanceList: [],
       updaterequestmodel: [],
       leaveRequest: null,
+      leavetype: [],
     );
   }
 
@@ -50,6 +53,7 @@ class LeaveReqFormState extends Equatable {
     List<LeaveRequestModel>? updaterequestmodel,
     List<AttendanceModel>? attendanceList,
     LeaveRequestModel? leaveRequest,
+    List<LeaveModel>? leavetype,
   }) {
     return LeaveReqFormState(
       initialvalue: initialvalue ?? this.initialvalue,
@@ -59,6 +63,7 @@ class LeaveReqFormState extends Equatable {
       updaterequestmodel: updaterequestmodel ?? this.updaterequestmodel,
       attendanceList: attendanceList ?? this.attendanceList,
       leaveRequest: leaveRequest ?? this.leaveRequest,
+      leavetype: leavetype ?? this.leavetype
     );
   }
 
@@ -71,5 +76,6 @@ class LeaveReqFormState extends Equatable {
     attendanceList,
     updaterequestmodel,
     leaveRequest,
+    leavetype,
   ];
 }

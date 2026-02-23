@@ -59,7 +59,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
             Row(
               children: [
-                _buildNotificationButton(),
+                // _buildNotificationButton(),
                 const SizedBox(width: 8),
                 _buildUserMenu(),
               ],
@@ -70,13 +70,13 @@ class _CustomAppBarState extends State<CustomAppBar> {
     );
   }
 
-  Widget _buildNotificationButton() {
-    return IconButton(
-      icon: const Icon(Icons.notifications_none, color: Colors.white, size: 24),
-      onPressed: widget.onNotificationPressed,
-      tooltip: 'Notifications',
-    );
-  }
+  // Widget _buildNotificationButton() {
+  //   return IconButton(
+  //     icon: const Icon(Icons.notifications_none, color: Colors.white, size: 24),
+  //     onPressed: widget.onNotificationPressed,
+  //     tooltip: 'Notifications',
+  //   );
+  // }
 
   Widget _buildUserMenu() {
     return PopupMenuButton<String>(
@@ -115,11 +115,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
       value: 'profile',
       child: Row(
         children: [
-          Icon(
-            Icons.person_outline,
-            color: Constants.color.primary,
-            size: 20,
-          ),
+          Icon(Icons.person_outline, color: Constants.color.primary, size: 20),
           const SizedBox(width: 12),
           const Text('Profile'),
         ],
@@ -159,11 +155,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
   void _handleMenuSelection(String value) {
     switch (value) {
-      case 'profile':
-        context.pushNamed(RouteName.profile);
+      // case 'profile':
+      //   context.pushNamed(RouteName.profile);
 
-        widget.onProfilePressed?.call();
-        break;
+      //   widget.onProfilePressed?.call();
+      //   break;
       case 'leave':
         context.pushNamed(RouteName.leavereq);
         widget.onSettingsPressed?.call();

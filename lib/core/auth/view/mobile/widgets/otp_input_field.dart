@@ -42,14 +42,20 @@ class _OtpInputFieldsState extends State<OtpInputFields> {
       focusNodes[index - 1].requestFocus();
     }
 
-    final otp = controllers.map((e) => e.text).join();
+    final otpChars = List.generate(
+      otpLength,
+      (i) => i == index ? value : controllers[i].text,
+    );
+    final otp = otpChars.join();
 
     context.read<AuthBloc>().add(OtpChanged(otp));
 
-    if (otp.length == otpLength) {
+    if (otp.length == otpLength && !otp.contains('')) {
       FocusScope.of(context).unfocus();
       final email = context.read<AuthBloc>().state.email;
-      context.read<AuthBloc>().add(OtpSubmitted(email: email, otp: int.parse(otp)));
+      context.read<AuthBloc>().add(
+        OtpSubmitted(email: email, otp: int.parse(otp)),
+      );
     }
   }
 

@@ -53,14 +53,15 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
         child: BlocBuilder<LeaveReqFormBloc, LeaveReqFormState>(
           buildWhen: (p, c) =>
               p.status != c.status ||
+              p.leavetype != c.leavetype ||
               p.currentLeaveRequest != c.currentLeaveRequest,
           builder: (context, state) {
             if (state.status == LeaveReqFormStaus.loading) {
               return const Center(child: CircularProgressIndicator());
             }
-
+            // Logger().d('leavetype:::::${state.leavetype!.first.id}');
             if (state.status == LeaveReqFormStaus.ready) {
-              return _buildForm(context, state, state.initialvalue);
+              return _buildForm(context, state);
             }
 
             return const SizedBox.shrink();
@@ -70,11 +71,9 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
     );
   }
 
-  Widget _buildForm(
-    BuildContext context,
-    LeaveReqFormState state,
-    Map<String, dynamic>? leave,
-  ) {
+  Widget _buildForm(BuildContext context, LeaveReqFormState state) {
+    final leave = state.initialvalue;
+
     _logger.d('Editing Leave: ${leave?['leave_type']}');
 
     return SafeArea(
@@ -83,7 +82,9 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
         child: FormBuilder(
           key: _formKey,
           initialValue: {
-            'leave_type': leave?['leave_type'],
+            'leave_type': leave?['leave_type'] != null
+                ? int.tryParse(leave!['leave_type'].toString())
+                : null,
             'start_date': leave?['start_date'] != null
                 ? DateTime.tryParse(leave!['start_date'])
                 : null,
@@ -92,20 +93,26 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
                 : null,
             'reason': leave?['reason'],
           },
+
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _section('Leave Type', true),
 
-              FormBuilderDropdown<String>(
+              FormBuilderDropdown<int>(
                 name: 'leave_type',
                 decoration: _decoration('Select Leave Type'),
-                items: const [
-                  DropdownMenuItem(value: 'CASUAL', child: Text('CASUAL')),
-                  DropdownMenuItem(value: 'SICK', child: Text('SICK')),
-                  DropdownMenuItem(value: 'WFH', child: Text('WFH')),
-                  DropdownMenuItem(value: 'ANNUAL', child: Text('ANNUAL')),
-                ],
+
+                items: state.leavetype!
+                    .map(
+                      (e) => DropdownMenuItem<int>(
+                        value: e.id,
+                        child: Text(e.leaveName),
+                      ),
+                    )
+                    .toList(),
+                validator: (value) =>
+                    value == null ? 'Please select leave type' : null,
               ),
 
               const SizedBox(height: 20),
@@ -118,6 +125,8 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
                       inputType: InputType.date,
                       format: DateFormat('dd/MM/yyyy'),
                       decoration: _decoration('From Date'),
+                      validator: (value) =>
+                          value == null ? 'Select start date' : null,
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -128,6 +137,8 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
                       inputType: InputType.date,
                       format: DateFormat('dd/MM/yyyy'),
                       decoration: _decoration('To Date'),
+                      validator: (value) =>
+                          value == null ? 'Select end date' : null,
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -144,6 +155,9 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
                 name: 'reason',
                 maxLines: 4,
                 decoration: _decoration('Enter reason'),
+                validator: (value) => (value == null || value.isEmpty)
+                    ? 'Reason is required'
+                    : null,
               ),
 
               const SizedBox(height: 32),
@@ -192,6 +206,7 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
       }
 
       final days = end.difference(start).inDays + 1;
+
       return Text(
         'Total Leave: $days day(s)',
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -214,9 +229,16 @@ class _LeaveFormMobileViewState extends State<LeaveFormMobileView> {
       return;
     }
 
+    final selectedId = v['leave_type'] as int;
+
+    final selectedLeaveType = state.leavetype!.firstWhere(
+      (e) => e.id == selectedId,
+    );
+
     final model = LeaveRequestModel(
       id: state.currentLeaveRequest?.id,
-      leaveType: v['leave_type'],
+      leavetypeID: selectedLeaveType.id,
+      leaveType: selectedLeaveType.leaveName,
       startDate: v['start_date'],
       endDate: v['end_date'],
       reason: v['reason'],

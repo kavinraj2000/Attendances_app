@@ -10,16 +10,11 @@ class GradientBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration:  BoxDecoration(
-        gradient: Constants.color.primaryGradient,
-      ),
+      decoration: BoxDecoration(gradient: Constants.color.primaryGradient),
       child: Stack(
         children: [
           const Positioned.fill(
-            child: Opacity(
-              opacity: 0.08, // FIXED
-              child: _BackgroundAnimation(),
-            ),
+            child: Opacity(opacity: 0.08, child: _BackgroundAnimation()),
           ),
           child,
         ],
@@ -34,7 +29,7 @@ class _BackgroundAnimation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Lottie.asset(
-      'assets/animations/bg.json',
+      'assets/lottie/background.json',
       fit: BoxFit.cover,
       repeat: true,
     );

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/model/attances_model.dart';
+import 'package:hrm/core/model/leave_model.dart';
 import 'package:hrm/core/model/leave_req_model.dart';
 import 'package:hrm/screens/leave/leave_req_form/repo/leave_req_form_repo.dart';
 import 'package:logger/logger.dart';
@@ -25,17 +26,31 @@ class LeaveReqFormBloc extends Bloc<LeaveFormReqevent, LeaveReqFormState> {
         : msg;
   }
 
-  void _onInitial(
+  Future<void> _onInitial(
     InitialLeaverequestevent event,
     Emitter<LeaveReqFormState> emit,
-  ) {
-    log.d('_onInitial::${event.intialvalue}');
-    emit(
-      state.copyWith(
-        status: LeaveReqFormStaus.ready,
-        initialvalue: event.intialvalue,
-      ),
-    );
+  ) async {
+    try {
+      emit(state.copyWith(status: LeaveReqFormStaus.loading));
+
+      final leaveTypes = await repo.getLeaveReason();
+      log.d('_onInitial::leaveTypes::::${leaveTypes.length}');
+
+      emit(
+        state.copyWith(
+          status: LeaveReqFormStaus.ready,
+          initialvalue: event.intialvalue,
+          leavetype: leaveTypes,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: LeaveReqFormStaus.failure,
+          message: e.toString(),
+        ),
+      );
+    }
   }
 
   Future<void> _onCreate(
@@ -46,12 +61,13 @@ class LeaveReqFormBloc extends Bloc<LeaveFormReqevent, LeaveReqFormState> {
       emit(state.copyWith(status: LeaveReqFormStaus.loading));
 
       final created = await repo.leaverequest(
+        leaveTypeID: event.leaveRequestModel.leavetypeID,
         leaveType: event.leaveRequestModel.leaveType,
         startdate: event.leaveRequestModel.startDate,
         enddate: event.leaveRequestModel.endDate,
         reason: event.leaveRequestModel.reason,
       );
-
+log.d('SubmitLeaveFormreq:::${created.leavetypeID}');
       emit(
         state.copyWith(
           status: LeaveReqFormStaus.submitted,
@@ -78,7 +94,7 @@ class LeaveReqFormBloc extends Bloc<LeaveFormReqevent, LeaveReqFormState> {
       if (state.initialvalue == null) {
         throw Exception('Invalid leave request ID');
       }
-log.d('UpdateLeaverequestevent:${state.initialvalue!['id']}');
+      log.d('UpdateLeaverequestevent:${state.initialvalue!['id']}');
       emit(state.copyWith(status: LeaveReqFormStaus.loading));
 
       final updated = await repo.updateLeaveRequest(

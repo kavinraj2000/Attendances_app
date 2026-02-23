@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:hrm/core/auth/view/mobile/widgets/otp_verfication_page.dart';
+import 'package:hrm/core/auth/view/mobile/otp_verfication_page.dart';
 
 class OtpPage extends StatelessWidget {
   final String email;

@@ -1,5 +1,6 @@
 class LeaveRequestModel {
   final int? id;
+  final int? leavetypeID;
   final String leaveType;
   final DateTime startDate;
   final DateTime endDate;
@@ -11,6 +12,7 @@ class LeaveRequestModel {
     required this.startDate,
     required this.endDate,
     required this.reason,
+    this.leavetypeID,
   });
 
   factory LeaveRequestModel.fromJson(Map<String, dynamic> json) {
@@ -21,7 +23,8 @@ class LeaveRequestModel {
       startDate: DateTime.parse(data['start_date'] as String),
       endDate: DateTime.parse(data['end_date'] as String),
       reason: data['reason'] as String,
-      id: data['id'] 
+      id: data['id'] ,
+      leavetypeID: data['leave_type_id'],
     );
   }
 
@@ -32,6 +35,7 @@ class LeaveRequestModel {
       'start_date': _formatDate(startDate),
       'end_date': _formatDate(endDate),
       'reason': reason,
+      'leave_type_id':leavetypeID,
     };
   }
 
@@ -40,6 +44,7 @@ class LeaveRequestModel {
     String? leaveType,
     DateTime? startDate,
     DateTime? endDate,
+    int?leaveTypeID,
     String? reason,
   }) {
     return LeaveRequestModel(
@@ -48,6 +53,7 @@ class LeaveRequestModel {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       reason: reason ?? this.reason,
+      leavetypeID: leaveTypeID ?? leavetypeID
     );
   }
 
