@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/app/app.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
 import 'package:hrm/core/auth/repo/auth_repo.dart';
+import 'package:hrm/core/extension/setup_locator.dart';
 import 'package:hrm/core/repo/localdb_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  setupLocator();
   runApp(
     MultiRepositoryProvider(
       providers: [
@@ -25,7 +28,7 @@ void main() {
                   ..add(CheckAuthStatus()),
           ),
         ],
-        child: const App(),
+        child: App(),
       ),
     ),
   );

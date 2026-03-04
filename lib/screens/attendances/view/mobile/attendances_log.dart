@@ -1,99 +1,173 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrm/screens/attendances/provoider/attendance_log_provoider.dart';
+import 'package:provider/provider.dart';
+import 'package:hrm/core/enum/attendance_status.dart';
 import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/core/util/attendance_util.dart';
-import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 
 class AttendanceLogsScreen extends StatelessWidget {
   const AttendanceLogsScreen({super.key});
 
-  void _prevMonth(BuildContext context, AttendanceLogsState state) {
-    final newDate = DateTime(state.currentYear, state.currentMonth - 1, 1);
-    context.read<AttendanceLogsBloc>()
-      ..add(SelectDate(newDate))
-      ..add(LoadAttendanceLogs(month: newDate.month, year: newDate.year));
-  }
+  @override
+  Widget build(BuildContext context) {
+    final status = context.select<AttendanceLogProvider, AttendanceLogStatus>(
+      (p) => p.status,
+    );
 
-  void _nextMonth(BuildContext context, AttendanceLogsState state) {
-    final newDate = DateTime(state.currentYear, state.currentMonth + 1, 1);
-    context.read<AttendanceLogsBloc>()
-      ..add(SelectDate(newDate))
-      ..add(LoadAttendanceLogs(month: newDate.month, year: newDate.year));
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: () {
+        if (status == AttendanceLogStatus.loading) {
+          return const Center(
+            child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2.5),
+          );
+        }
+
+        if (status == AttendanceLogStatus.error) {
+          return _ErrorView(
+            message:
+                context.read<AttendanceLogProvider>().errorMessage ??
+                'Something went wrong',
+            onRetry: () {
+              final p = context.read<AttendanceLogProvider>();
+              p.loadAttendanceLogs(month: p.currentMonth, year: p.currentYear);
+            },
+          );
+        }
+
+        return const SafeArea(
+          child: Column(
+            children: [
+              _TopBarWidget(),
+              _CalendarCardWidget(),
+              SizedBox(height: 4),
+              Expanded(child: _DayDetailPanelWidget()),
+            ],
+          ),
+        );
+      }(),
+    );
   }
+}
+
+class _TopBarWidget extends StatelessWidget {
+  const _TopBarWidget();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-      body: BlocBuilder<AttendanceLogsBloc, AttendanceLogsState>(
-        builder: (context, state) {
-          if (state.status == AttendanceLogStatus.loading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: _kAccent,
-                strokeWidth: 2.5,
-              ),
-            );
-          }
+    final month = context.select<AttendanceLogProvider, int>(
+      (p) => p.currentMonth,
+    );
+    final year = context.select<AttendanceLogProvider, int>(
+      (p) => p.currentYear,
+    );
 
-          if (state.status == AttendanceLogStatus.error) {
-            return _ErrorView(
-              message: state.errorMessage ?? 'Something went wrong',
-              onRetry: () => context.read<AttendanceLogsBloc>().add(
-                LoadAttendanceLogs(
-                  month: state.currentMonth,
-                  year: state.currentYear,
-                ),
-              ),
-            );
-          }
+    final isBusy = context.select<AttendanceLogProvider, bool>(
+      (p) => p.isChangingMonth,
+    );
 
-          final selectedDay = state.selectedDate ?? DateTime.now();
-          final selectedRecord = _findRecord(state.scheduleData, selectedDay);
-
-          return SafeArea(
-            child: Column(
-              children: [
-                _TopBar(
-                  month: state.currentMonth,
-                  year: state.currentYear,
-                  onPrev: () => _prevMonth(context, state),
-                  onNext: () => _nextMonth(context, state),
-                ),
-                _CalendarCard(
-                  month: state.currentMonth,
-                  year: state.currentYear,
-                  records: state.scheduleData,
-                  selectedDay: selectedDay,
-                  onDaySelected: (d) =>
-                      context.read<AttendanceLogsBloc>().add(SelectDate(d)),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: _DayDetailPanel(
-                    selectedDay: selectedDay,
-                    selectedRecord: selectedRecord,
-                    summary: state.attendanceSummary,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+    return _TopBar(
+      month: month,
+      year: year,
+      isBusy: isBusy,
+      onPrev: isBusy
+          ? null
+          : () {
+              final p = context.read<AttendanceLogProvider>();
+              p.changeMonth(DateTime(p.currentYear, p.currentMonth - 1, 1));
+            },
+      onNext: isBusy
+          ? null
+          : () {
+              final p = context.read<AttendanceLogProvider>();
+              p.changeMonth(DateTime(p.currentYear, p.currentMonth + 1, 1));
+            },
     );
   }
+}
 
-  AttendanceModel? _findRecord(List<AttendanceModel> list, DateTime date) {
-    for (final r in list) {
-      try {
-        final d = DateTime.parse(r.attendanceDate);
-        if (d.year == date.year && d.month == date.month && d.day == date.day) {
-          return r;
-        }
-      } catch (_) {}
-    }
-    return null;
+class _CalendarCardWidget extends StatelessWidget {
+  const _CalendarCardWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    final month = context.select<AttendanceLogProvider, int>(
+      (p) => p.currentMonth,
+    );
+    final year = context.select<AttendanceLogProvider, int>(
+      (p) => p.currentYear,
+    );
+    final records = context
+        .select<AttendanceLogProvider, List<AttendanceModel>>(
+          (p) => p.scheduleData,
+        );
+    final selectedDay = context.select<AttendanceLogProvider, DateTime>(
+      (p) => p.selectedDate ?? DateTime.now(),
+    );
+
+    final isChangingMonth = context.select<AttendanceLogProvider, bool>(
+      (p) => p.isChangingMonth,
+    );
+
+    return Stack(
+      children: [
+        _CalendarCard(
+          month: month,
+          year: year,
+          records: records,
+          selectedDay: selectedDay,
+          onDaySelected: (d) =>
+              context.read<AttendanceLogProvider>().selectDate(d),
+        ),
+
+        AnimatedOpacity(
+          opacity: isChangingMonth ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          child: IgnorePointer(
+            ignoring: !isChangingMonth,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.75),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              height: 300,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: _kAccent,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DayDetailPanelWidget extends StatelessWidget {
+  const _DayDetailPanelWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedDay = context.select<AttendanceLogProvider, DateTime>(
+      (p) => p.selectedDate ?? DateTime.now(),
+    );
+    final selectedRecord = context
+        .select<AttendanceLogProvider, AttendanceModel?>(
+          (p) => p.recordForDate(p.selectedDate ?? DateTime.now()),
+        );
+    final summary = context
+        .select<AttendanceLogProvider, Map<AttendanceStatus, int>>(
+          (p) => p.summary,
+        );
+
+    return _DayDetailPanel(
+      selectedDay: selectedDay,
+      selectedRecord: selectedRecord,
+      summary: summary,
+    );
   }
 }
 
@@ -159,11 +233,14 @@ class _ErrorView extends StatelessWidget {
 
 class _TopBar extends StatelessWidget {
   final int month, year;
-  final VoidCallback onPrev, onNext;
+  final bool isBusy;
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
 
   const _TopBar({
     required this.month,
     required this.year,
+    required this.isBusy,
     required this.onPrev,
     required this.onNext,
   });
@@ -171,7 +248,6 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final monthName = AttendanceUtils.getMonthName(month);
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
       child: Row(
@@ -191,27 +267,36 @@ class _TopBar extends StatelessWidget {
                   color: _kText,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  '$monthName  $year',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: _kText,
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: Text(
+                    '$monthName  $year',
+                    key: ValueKey('$month-$year'),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _kText,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
-                // const Icon(
-                //   Icons.keyboard_arrow_down_rounded,
-                //   size: 18,
-                //   color: _kSub,
-                // ),
               ],
             ),
           ),
           const Spacer(),
-          _NavBtn(icon: Icons.chevron_left_rounded, onTap: onPrev),
-          const SizedBox(width: 8),
-          _NavBtn(icon: Icons.chevron_right_rounded, onTap: onNext),
+          AnimatedOpacity(
+            opacity: isBusy ? 0.4 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: Row(
+              children: [
+                _NavBtn(icon: Icons.chevron_left_rounded, onTap: onPrev),
+                const SizedBox(width: 8),
+                _NavBtn(icon: Icons.chevron_right_rounded, onTap: onNext),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -220,7 +305,7 @@ class _TopBar extends StatelessWidget {
 
 class _NavBtn extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _NavBtn({required this.icon, required this.onTap});
 
@@ -298,7 +383,15 @@ class _CalendarCard extends StatelessWidget {
             }).toList(),
           ),
           const SizedBox(height: 8),
-          _buildGrid(startOffset, daysInMonth, now),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: KeyedSubtree(
+              key: ValueKey('$month-$year'),
+              child: _buildGrid(startOffset, daysInMonth, now),
+            ),
+          ),
           const SizedBox(height: 10),
           Container(
             width: 36,
@@ -343,7 +436,7 @@ class _CalendarCard extends StatelessWidget {
                 date.weekday == DateTime.sunday;
             final record = _findRecord(date);
             final dotColor = record != null
-                ? _statusColor(record.attendanceStatus)
+                ? _statusColor(record.attendanceStatus!)
                 : null;
 
             return Expanded(
@@ -417,7 +510,7 @@ class _CalendarCard extends StatelessWidget {
   AttendanceModel? _findRecord(DateTime date) {
     for (final r in records) {
       try {
-        final d = DateTime.parse(r.attendanceDate);
+        final d = DateTime.parse(r.attendanceDate.toString());
         if (d.year == date.year && d.month == date.month && d.day == date.day) {
           return r;
         }
@@ -430,7 +523,7 @@ class _CalendarCard extends StatelessWidget {
 class _DayDetailPanel extends StatelessWidget {
   final DateTime selectedDay;
   final AttendanceModel? selectedRecord;
-  final Map<String, int> summary;
+  final Map<AttendanceStatus, int> summary;
 
   const _DayDetailPanel({
     required this.selectedDay,
@@ -516,10 +609,12 @@ class _DayDetailPanel extends StatelessWidget {
                     ),
                     if (selectedRecord != null)
                       Text(
-                        selectedRecord!.attendanceStatus ?? '',
+                        selectedRecord!.attendanceStatus.toString(),
                         style: TextStyle(
                           fontSize: 12,
-                          color: _statusColor(selectedRecord!.attendanceStatus),
+                          color: _statusColor(
+                            selectedRecord!.attendanceStatus!,
+                          ),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -553,7 +648,7 @@ class _AttendanceRecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(record.attendanceStatus);
+    final color = _statusColor(record.attendanceStatus!);
     final checkIn = _fmtTime(record.checkinTime?.toString());
     final checkOut = _fmtTime(record.checkoutTime?.toString());
 
@@ -591,7 +686,7 @@ class _AttendanceRecordTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  record.attendanceStatus ?? '--',
+                  record.attendanceStatus.toString(),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -732,7 +827,6 @@ class _TimeChip extends StatelessWidget {
   }
 }
 
-/* ─── empty state ─── */
 class _EmptyDay extends StatelessWidget {
   final bool isToday;
 
@@ -771,26 +865,25 @@ class _EmptyDay extends StatelessWidget {
   }
 }
 
-const _kBg = Color(0xFFF6F6F9);
 const _kCard = Colors.white;
 const _kAccent = Color(0xFFFF6B4A);
 const _kText = Color(0xFF1A1A2E);
 const _kSub = Color(0xFF9E9EAF);
 const _kWeekend = Color(0xFFFF6B4A);
 
-Color _statusColor(String? status) {
+Color _statusColor(AttendanceStatus status) {
   switch (status) {
-    case 'PRESENT':
+    case AttendanceStatus.present:
       return const Color(0xFF4CAF50);
-    case 'ABSENT':
+    case AttendanceStatus.absent:
       return const Color(0xFFF44336);
-    case 'LATE':
+    case AttendanceStatus.halfDay:
       return const Color(0xFFFF9800);
-    case 'INPROGRESS':
+    case AttendanceStatus.pending:
       return const Color(0xFF2196F3);
-    case 'LEAVE':
+    case AttendanceStatus.leave:
       return const Color(0xFF9C27B0);
-    default:
+    case AttendanceStatus.unknown:
       return _kSub;
   }
 }

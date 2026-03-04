@@ -15,13 +15,13 @@ class AttendancesRepo {
   final Dio dio;
 
   AttendancesRepo(this.localDB, this.pref)
-      : dio = Dio(
-          BaseOptions(
-            baseUrl: Api.baseUrl,
-            connectTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
-          ),
-        ) {
+    : dio = Dio(
+        BaseOptions(
+          baseUrl: Api.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      ) {
     _setupInterceptors();
   }
 
@@ -75,7 +75,9 @@ class AttendancesRepo {
         ),
       );
 
-      log.d('Attendance response | status: ${response.statusCode} | body: ${response.data}');
+      log.d(
+        'Attendance response | status: ${response.statusCode} | body: ${response.data}',
+      );
 
       return ResponseHandler.handleList<AttendanceModel>(
         statusCode: response.statusCode,

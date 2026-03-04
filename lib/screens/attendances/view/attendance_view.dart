@@ -1,40 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrm/screens/attendances/provoider/attendance_log_provoider.dart';
+import 'package:hrm/screens/attendances/view/mobile/attendances_log.dart';
+import 'package:provider/provider.dart';
 import 'package:hrm/core/repo/localdb_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
-import 'package:hrm/screens/attendances/bloc/attendances_bloc.dart';
 import 'package:hrm/screens/attendances/repo/attendances_repo.dart';
-import 'package:hrm/screens/attendances/view/mobile/attances_mobile_view.dart';
 
 class AttendanceView extends StatelessWidget {
   const AttendanceView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiRepositoryProvider(
+    return MultiProvider(
       providers: [
-        RepositoryProvider<LocalDBRepository>(
+        Provider<LocalDBRepository>(
           create: (_) => LocalDBRepository(),
         ),
-        RepositoryProvider<PreferencesRepository>(
+        Provider<PreferencesRepository>(
           create: (_) => PreferencesRepository(),
         ),
-      ],
-      child: BlocProvider<AttendanceLogsBloc>(
-        create: (context) =>
-            AttendanceLogsBloc(
-              repository: AttendancesRepo(
-                context.read<LocalDBRepository>(),
-                context.read<PreferencesRepository>(),
-              ),
-            )..add(
-              LoadAttendanceLogs(
-                month: DateTime.now().month,
-                year: DateTime.now().year,
-              ),
+        ChangeNotifierProvider<AttendanceLogProvider>(
+          create: (context) => AttendanceLogProvider(
+            repo: AttendancesRepo(
+              context.read<LocalDBRepository>(),
+              context.read<PreferencesRepository>(),
             ),
-        child: const AttendanceLogsScreen(),
-      ),
+          )..loadAttendanceLogs(
+              month: DateTime.now().month,
+              year: DateTime.now().year,
+            ),
+        ),
+      ],
+      child: const AttendanceLogsScreen(),
     );
   }
 }

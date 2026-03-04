@@ -50,7 +50,7 @@ dependencies:
   logger: ^2.6.2
   image_picker: ^1.2.1
   get: ^4.7.3
-  get_it: ^9.2.0
+  get_it: ^9.2.1
   firebase_database: ^12.1.2
   firebase_crashlytics: ^5.0.7
   firebase_core: ^4.4.0

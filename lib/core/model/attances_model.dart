@@ -1,9 +1,10 @@
 import 'package:equatable/equatable.dart';
+import 'package:hrm/core/enum/attendance_status.dart';
 
 class AttendanceModel extends Equatable {
   final int? id;
   final String employeeId;
-  final String attendanceDate;
+  final DateTime attendanceDate;
   final DateTime? checkinTime;
   final double? checkinLatitude;
   final double? checkinLongitude;
@@ -12,7 +13,7 @@ class AttendanceModel extends Equatable {
   final double? checkoutLatitude;
   final double? checkoutLongitude;
   final String? checkoutImage;
-  final String? attendanceStatus;
+  final AttendanceStatus? attendanceStatus;
   final String? totalWorkHours;
   final String? remarks;
   final DateTime? created;
@@ -30,7 +31,7 @@ class AttendanceModel extends Equatable {
     this.checkoutLongitude,
     this.checkinImage,
     this.checkoutImage,
-    this.attendanceStatus,
+     this.attendanceStatus,
     this.totalWorkHours,
     this.remarks,
     this.created,
@@ -40,7 +41,7 @@ class AttendanceModel extends Equatable {
   bool get isActiveCheckIn {
     if (checkinTime == null) return false;
     if (checkoutTime != null) return false;
-    if (attendanceStatus == 'PENDING') return false;
+    if (attendanceStatus == AttendanceStatus.pending) return false;
 
     final diffHours = DateTime.now().difference(checkinTime!).inHours;
     return diffHours <= 24;
@@ -50,7 +51,9 @@ class AttendanceModel extends Equatable {
 
   Duration get workingDuration {
     if (checkinTime == null) return Duration.zero;
+
     final end = checkoutTime ?? DateTime.now();
+
     return end.isAfter(checkinTime!)
         ? end.difference(checkinTime!)
         : Duration.zero;
@@ -64,7 +67,7 @@ class AttendanceModel extends Equatable {
   AttendanceModel copyWith({
     int? id,
     String? employeeId,
-    String? attendanceDate,
+    DateTime? attendanceDate,
     DateTime? checkinTime,
     DateTime? checkoutTime,
     double? checkinLatitude,
@@ -73,7 +76,7 @@ class AttendanceModel extends Equatable {
     double? checkoutLongitude,
     String? checkinImage,
     String? checkoutImage,
-    String? attendanceStatus,
+    AttendanceStatus? attendanceStatus,
     String? totalWorkHours,
     String? remarks,
     DateTime? created,
@@ -103,20 +106,20 @@ class AttendanceModel extends Equatable {
     return AttendanceModel(
       id: _parseInt(json['id']),
       employeeId: json['employee_id']?.toString() ?? '',
-      attendanceDate: json['attendance_date']?.toString() ?? '',
-      checkinTime: _utcToIst(json['checkin_time']),
-      checkoutTime: _utcToIst(json['checkout_time']),
+      attendanceDate: DateTime.parse(json['attendance_date']),
+      checkinTime: _parseDate(json['checkin_time']),
+      checkoutTime: _parseDate(json['checkout_time']),
       checkinLatitude: _parseDouble(json['checkin_latitude']),
       checkinLongitude: _parseDouble(json['checkin_longitude']),
       checkoutLatitude: _parseDouble(json['checkout_latitude']),
       checkoutLongitude: _parseDouble(json['checkout_longitude']),
       checkinImage: json['checkin_image']?.toString(),
       checkoutImage: json['checkout_image']?.toString(),
-      attendanceStatus: json['attendance_status']?.toString(),
+      attendanceStatus: AttendanceStatus.fromString(json['attendance_status']),
       totalWorkHours: json['total_work_hours']?.toString(),
       remarks: json['remarks']?.toString(),
-      created: _utcToIst(json['created']),
-      modified: _utcToIst(json['modified']),
+      created: _parseDate(json['created']),
+      modified: _parseDate(json['modified']),
     );
   }
 
@@ -124,29 +127,27 @@ class AttendanceModel extends Equatable {
     return {
       'id': id,
       'employee_id': employeeId,
-      'attendance_date': attendanceDate,
-      'checkin_time': checkinTime?.toUtc(),
+      'attendance_date': attendanceDate.toIso8601String(),
+      'checkin_time': checkinTime?.toUtc().toIso8601String(),
       'checkin_latitude': checkinLatitude,
       'checkin_longitude': checkinLongitude,
       'checkin_image': checkinImage,
-      'checkout_time': checkoutTime?.toUtc(),
+      'checkout_time': checkoutTime?.toUtc().toIso8601String(),
       'checkout_latitude': checkoutLatitude,
       'checkout_longitude': checkoutLongitude,
       'checkout_image': checkoutImage,
       'attendance_status': attendanceStatus,
       'total_work_hours': totalWorkHours,
       'remarks': remarks,
-      'created': created?.toUtc(),
-      'modified': modified?.toUtc(),
+      'created': created?.toUtc().toIso8601String(),
+      'modified': modified?.toUtc().toIso8601String(),
     };
   }
 
-
-  static DateTime? _utcToIst(dynamic v) {
-    if (v == null) return null;
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
     try {
-      final utc = DateTime.parse(v.toString()).toUtc();
-      return utc.add(const Duration(hours: 5, minutes: 30));
+      return DateTime.parse(value.toString());
     } catch (_) {
       return null;
     }
@@ -164,11 +165,11 @@ class AttendanceModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        employeeId,
-        attendanceDate,
-        checkinTime,
-        checkoutTime,
-        attendanceStatus,
-      ];
+    id,
+    employeeId,
+    attendanceDate,
+    checkinTime,
+    checkoutTime,
+    attendanceStatus,
+  ];
 }

@@ -151,7 +151,7 @@ class DashboardRepository {
            pref.saveCheckInState(now);
           return AttendanceModel(
             employeeId: id.toString(),
-            attendanceDate: DateFormat('yyyy-MM-dd').format(now),
+            attendanceDate: DateTime.parse(DateFormat('yyyy-MM-dd').format(now)),
             checkinTime: now,
             checkinLatitude: lat,
             checkinLongitude: lng,

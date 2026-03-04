@@ -101,11 +101,9 @@ class Routes {
         final location = state.matchedLocation;
         final PreferencesRepository preferencesRepository =
             PreferencesRepository();
-
         final isLoginPage = location == RouteName.login;
         final isOtpPage = location == RouteName.otp;
         final isAuthPage = isLoginPage || isOtpPage;
-
         final isLoggedIn = await preferencesRepository.isLoggedIn();
         final isAuthSuccess = await preferencesRepository.isAuthSuccess();
         final token = await preferencesRepository.getToken();
