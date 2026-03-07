@@ -4,11 +4,7 @@ import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/screens/attendances/repo/attendances_repo.dart';
 import 'package:logger/logger.dart';
 
-// ─── Status Enum ─────────────────────────────────────────────────────────────
-
 enum AttendanceLogStatus { initial, loading, success, error }
-
-// ─── Provider ────────────────────────────────────────────────────────────────
 
 class AttendanceLogProvider extends ChangeNotifier {
   final AttendancesRepo repo;
@@ -22,12 +18,8 @@ class AttendanceLogProvider extends ChangeNotifier {
     _currentDate = now;
   }
 
-  // ── Private fields ────────────────────────────────────────────────────────
-
   AttendanceLogStatus _status = AttendanceLogStatus.initial;
 
-  /// True only during a month navigation fetch — keeps the existing
-  /// calendar visible while new data loads instead of showing a full spinner.
   bool _isChangingMonth = false;
 
   List<AttendanceModel> _scheduleData = [];
@@ -42,12 +34,8 @@ class AttendanceLogProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _errorCode;
 
-  // ── Public getters ────────────────────────────────────────────────────────
-
   AttendanceLogStatus get status => _status;
 
-  /// True while a month-change fetch is in progress.
-  /// Use this to show a subtle overlay/shimmer instead of a full-screen spinner.
   bool get isChangingMonth => _isChangingMonth;
 
   List<AttendanceModel> get scheduleData => _scheduleData;
@@ -59,15 +47,11 @@ class AttendanceLogProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get errorCode => _errorCode;
 
-  // ── Computed helpers ──────────────────────────────────────────────────────
-
   AttendanceModel? recordForDate(DateTime date) {
     for (final r in _scheduleData) {
       try {
         final d = DateTime.parse(r.attendanceDate.toString());
-        if (d.year == date.year &&
-            d.month == date.month &&
-            d.day == date.day) {
+        if (d.year == date.year && d.month == date.month && d.day == date.day) {
           return r;
         }
       } catch (_) {}
@@ -75,9 +59,6 @@ class AttendanceLogProvider extends ChangeNotifier {
     return null;
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-
-  /// Initial load — shows the full-screen spinner.
   Future<void> loadAttendanceLogs({
     required int month,
     required int year,
@@ -93,19 +74,14 @@ class AttendanceLogProvider extends ChangeNotifier {
     }
   }
 
-  /// Month navigation — updates month/year immediately so the top bar and
-  /// calendar header reflect the change instantly, then fetches silently with
-  /// only [isChangingMonth] = true. No full-screen spinner.
   Future<void> changeMonth(DateTime newDate) async {
-    // ✅ Immediately update month + year + selectedDate so the UI header
-    //    snaps to the new month without waiting for the fetch
     _currentMonth = newDate.month;
     _currentYear = newDate.year;
     _selectedDate = newDate;
     _errorMessage = null;
     _errorCode = null;
     _isChangingMonth = true;
-    notifyListeners(); // header updates, calendar shows overlay — no spinner
+    notifyListeners();
 
     try {
       final data = await repo.getAllAttendanceData();
@@ -120,7 +96,6 @@ class AttendanceLogProvider extends ChangeNotifier {
     }
   }
 
-  /// Silent background refresh — no loading spinner shown.
   Future<void> refreshSchedule() async {
     try {
       final data = await repo.getAllAttendanceData();
@@ -141,8 +116,6 @@ class AttendanceLogProvider extends ChangeNotifier {
     _selectedDate = null;
     notifyListeners();
   }
-
-  // ── Private helpers ───────────────────────────────────────────────────────
 
   void _setLoading() {
     _status = AttendanceLogStatus.loading;

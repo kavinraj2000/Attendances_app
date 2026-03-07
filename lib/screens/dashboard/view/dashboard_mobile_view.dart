@@ -1,60 +1,68 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/util/toast_util.dart';
 import 'package:hrm/core/widgets/greeting_widget.dart' as GreetingData;
-import 'package:hrm/screens/dashboard/bloc/dashboard_bloc.dart';
+import 'package:hrm/screens/dashboard/provoider/dashboard_provoider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
-class DashboardMobileView extends StatelessWidget {
+class DashboardMobileView extends StatefulWidget {
   const DashboardMobileView({super.key});
 
   @override
+  State<DashboardMobileView> createState() => _DashboardMobileViewState();
+}
+
+class _DashboardMobileViewState extends State<DashboardMobileView> {
+  CheckInStatus? _previousCheckInStatus;
+
+  @override
   Widget build(BuildContext context) {
-    return BlocListener<DashboardBloc, DashboardState>(
-      listenWhen: (previous, current) =>
-          current.loadingStatus == DashboardLoadingStatus.success &&
-          previous.checkInStatus != current.checkInStatus,
-      listener: (context, state) {
-        if (state.checkInStatus == CheckInStatus.checkedIn) {
-          ToastUtil.checkIn(context: context);
-        } else if (state.checkInStatus == CheckInStatus.checkedOut) {
-          ToastUtil.checkOut(context: context);
+    return Consumer<DashboardProvider>(
+      builder: (context, provider, _) {
+        // Show toasts when check-in/out status changes after a successful action
+        if (provider.loadingStatus == DashboardLoadingStatus.success &&
+            _previousCheckInStatus != provider.checkInStatus) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (provider.checkInStatus == CheckInStatus.checkedIn) {
+              ToastUtil.checkIn(context: context);
+            } else if (provider.checkInStatus == CheckInStatus.checkedOut) {
+              ToastUtil.checkOut(context: context);
+            }
+          });
+          _previousCheckInStatus = provider.checkInStatus;
         }
-      },
-      child: Scaffold(
-        backgroundColor: Constants.color.white,
-        body: SafeArea(
-          child: BlocBuilder<DashboardBloc, DashboardState>(
-            builder: (context, state) {
-              return RefreshIndicator(
-                color: Constants.color.lightblue,
-                onRefresh: () async {
-                  context.read<DashboardBloc>().add(RefreshDashboardData());
-                },
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: Constants.size.l),
-                  child: Column(
-                    children: [
-                      SizedBox(height: Constants.size.l),
-                      _GreetingCard(userName: state.userName),
-                      SizedBox(height: Constants.size.l),
-                      _DateTimeCard(state: state),
-                      SizedBox(height: Constants.size.l),
-                      _AttendanceSection(state: state),
-                      SizedBox(height: Constants.size.l),
-                    ],
-                  ),
+
+        return Scaffold(
+          backgroundColor: Constants.color.white,
+          body: SafeArea(
+            child: RefreshIndicator(
+              color: Constants.color.lightblue,
+              onRefresh: () => provider.refresh(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: Constants.size.l),
+                child: Column(
+                  children: [
+                    SizedBox(height: Constants.size.l),
+                    _GreetingCard(userName: provider.userName),
+                    SizedBox(height: Constants.size.l),
+                    _DateTimeCard(provider: provider),
+                    SizedBox(height: Constants.size.l),
+                    _AttendanceSection(provider: provider),
+                    SizedBox(height: Constants.size.l),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
+
+// ─── Greeting Card ────────────────────────────────────────────────────────────
 
 class _GreetingCard extends StatelessWidget {
   const _GreetingCard({required this.userName});
@@ -152,10 +160,12 @@ class _GreetingCard extends StatelessWidget {
   }
 }
 
-class _DateTimeCard extends StatelessWidget {
-  const _DateTimeCard({required this.state});
+// ─── Date Time Card ───────────────────────────────────────────────────────────
 
-  final DashboardState state;
+class _DateTimeCard extends StatelessWidget {
+  const _DateTimeCard({required this.provider});
+
+  final DashboardProvider provider;
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +255,8 @@ class _DateTimeCard extends StatelessWidget {
                   ),
                   Container(
                     height: 1,
-                    margin: EdgeInsets.symmetric(horizontal: Constants.size.l),
+                    margin:
+                        EdgeInsets.symmetric(horizontal: Constants.size.l),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -263,7 +274,7 @@ class _DateTimeCard extends StatelessWidget {
                         Expanded(
                           child: _AttendanceInfoChip(
                             label: 'Check In',
-                            time: state.checkInTimeFormatted ?? '--:--',
+                            time: provider.checkInTimeFormatted ?? '--:--',
                             color: const Color(0xFF10B981),
                           ),
                         ),
@@ -271,7 +282,7 @@ class _DateTimeCard extends StatelessWidget {
                         Expanded(
                           child: _AttendanceInfoChip(
                             label: 'Check Out',
-                            time: state.checkOutTimeFormatted ?? '--:--',
+                            time: provider.checkOutTimeFormatted ?? '--:--',
                             color: const Color(0xFFEF4444),
                           ),
                         ),
@@ -288,6 +299,8 @@ class _DateTimeCard extends StatelessWidget {
   }
 }
 
+// ─── Date Section ─────────────────────────────────────────────────────────────
+
 class _DateSection extends StatelessWidget {
   const _DateSection({required this.now});
 
@@ -303,7 +316,6 @@ class _DateSection extends StatelessWidget {
             gradient: LinearGradient(
               colors: [Constants.color.orange, Constants.color.gold],
             ),
-
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -352,6 +364,8 @@ class _DateSection extends StatelessWidget {
   }
 }
 
+// ─── Time Section ─────────────────────────────────────────────────────────────
+
 class _TimeSection extends StatelessWidget {
   const _TimeSection({required this.now});
 
@@ -384,6 +398,8 @@ class _TimeSection extends StatelessWidget {
     );
   }
 }
+
+// ─── Attendance Info Chip ─────────────────────────────────────────────────────
 
 class _AttendanceInfoChip extends StatelessWidget {
   const _AttendanceInfoChip({
@@ -430,14 +446,16 @@ class _AttendanceInfoChip extends StatelessWidget {
   }
 }
 
-class _AttendanceSection extends StatelessWidget {
-  const _AttendanceSection({required this.state});
+// ─── Attendance Section ───────────────────────────────────────────────────────
 
-  final DashboardState state;
+class _AttendanceSection extends StatelessWidget {
+  const _AttendanceSection({required this.provider});
+
+  final DashboardProvider provider;
 
   @override
   Widget build(BuildContext context) {
-    final isCheckedIn = state.checkInStatus == CheckInStatus.checkedIn;
+    final isCheckedIn = provider.checkInStatus == CheckInStatus.checkedIn;
 
     return Container(
       padding: EdgeInsets.all(Constants.size.l),
@@ -452,8 +470,7 @@ class _AttendanceSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(Constants.size.radiusL),
         boxShadow: [
           BoxShadow(
-            color:
-                (isCheckedIn
+            color: (isCheckedIn
                         ? Constants.color.danger
                         : Constants.color.lightblue)
                     .withOpacity(0.15),
@@ -515,7 +532,10 @@ class _AttendanceSection extends StatelessWidget {
               SizedBox(height: Constants.size.l),
               _CheckInButton(
                 isCheckedIn: isCheckedIn,
-                isLoading: state.isLoading,
+                isLoading: provider.isLoading,
+                onTap: isCheckedIn
+                    ? () => provider.checkOut()
+                    : () => provider.checkIn(),
               ),
             ],
           ),
@@ -525,11 +545,18 @@ class _AttendanceSection extends StatelessWidget {
   }
 }
 
+// ─── Check In Button ──────────────────────────────────────────────────────────
+
 class _CheckInButton extends StatelessWidget {
-  const _CheckInButton({required this.isCheckedIn, required this.isLoading});
+  const _CheckInButton({
+    required this.isCheckedIn,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   final bool isCheckedIn;
   final bool isLoading;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -544,11 +571,7 @@ class _CheckInButton extends StatelessWidget {
       key: ValueKey('${isCheckedIn}_${DateTime.now().second ~/ 2}'),
       builder: (context, pulse, _) {
         return GestureDetector(
-          onTap: isLoading
-              ? null
-              : () => context.read<DashboardBloc>().add(
-                  isCheckedIn ? CheckOut() : CheckIn(),
-                ),
+          onTap: isLoading ? null : onTap,
           child: Stack(
             alignment: Alignment.center,
             children: [

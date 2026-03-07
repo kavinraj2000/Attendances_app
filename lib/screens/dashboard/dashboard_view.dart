@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hrm/screens/dashboard/bloc/dashboard_bloc.dart';
+import 'package:hrm/screens/dashboard/provoider/dashboard_provoider.dart';
 import 'package:hrm/screens/dashboard/repo/dashboard_repo.dart';
 import 'package:hrm/screens/dashboard/view/dashboard_mobile_view.dart';
+import 'package:provider/provider.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<DashboardBloc>(
+    return ChangeNotifierProvider(
       create: (context) =>
-          DashboardBloc(DashboardRepository())
-            ..add(InitializeDashboard()),
+          DashboardProvider(DashboardRepository())..initialize(),
       child: const DashboardMobileView(),
     );
   }

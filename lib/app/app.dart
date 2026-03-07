@@ -20,7 +20,7 @@ class App extends StatelessWidget {
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             themeMode: ThemeMode.system,
-            theme: AppTheme.lightTheme,
+            theme: AppTheme.lightTheme ,
             routerConfig: Routes(context.read<AuthBloc>()).router,
             builder: (context, child) {
               return Util(child: child);
