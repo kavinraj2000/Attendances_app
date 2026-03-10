@@ -65,44 +65,58 @@ class _OtpInputFieldsState extends State<OtpInputFields> {
       (AuthBloc b) => b.state.status == AuthStatus.loading,
     );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(
-        otpLength,
-        (index) => Padding(
-          padding: EdgeInsets.symmetric(horizontal: Constants.size.xs),
-          child: SizedBox(
-            width: Constants.size.otpFieldSize,
-            height: Constants.size.otpFieldSize,
-            child: TextFormField(
-              controller: controllers[index],
-              focusNode: focusNodes[index],
-              enabled: !isLoading,
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.number,
-              maxLength: 1,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Constants.color.white,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              decoration: InputDecoration(
-                counterText: '',
-                filled: true,
-                fillColor: Constants.color.lightblue,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Constants.size.radiusM),
-                  borderSide: BorderSide.none,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Compute field size: divide available width evenly with spacing
+        final spacing = Constants.size.xs * 2 * otpLength;
+        final fieldSize = ((constraints.maxWidth - spacing) / otpLength).clamp(
+          40.0,
+          72.0,
+        );
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            otpLength,
+            (index) => Padding(
+              padding: EdgeInsets.symmetric(horizontal: Constants.size.xs),
+              child: SizedBox(
+                width: fieldSize,
+                height: fieldSize,
+                child: TextFormField(
+                  controller: controllers[index],
+                  focusNode: focusNodes[index],
+                  enabled: !isLoading,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  maxLength: 1,
+                  style: TextStyle(
+                    fontSize: fieldSize * 0.35,
+                    fontWeight: FontWeight.bold,
+                    color: Constants.color.white,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration: InputDecoration(
+                    counterText: '',
+                    filled: true,
+                    fillColor: Constants.color.lightblue,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        Constants.size.radiusM,
+                      ),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (v) => _onChanged(index, v),
                 ),
               ),
-              onChanged: (v) => _onChanged(index, v),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

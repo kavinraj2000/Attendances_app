@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrm/app/route_name.dart';
+import 'package:hrm/core/auth/view/mobile/widgets/gradient_background.dart';
+import 'package:hrm/core/constants/constants.dart';
 import 'package:hrm/core/util/toast_util.dart';
-import 'package:lottie/lottie.dart';
 import 'package:hrm/core/auth/bloc/auth_bloc.dart';
+import 'package:lottie/lottie.dart';
 
 class AuthloginView extends StatelessWidget {
   const AuthloginView({super.key});
@@ -41,42 +43,18 @@ class _AuthloginViewContent extends StatelessWidget {
                 colors: [Color(0xFF667eea), Color(0xFF764ba2)],
               ),
             ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.2,
-                    child: Lottie.asset(
-                      'assets/lottie/background.json',
-                      fit: BoxFit.cover,
-                      repeat: true,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: const AssetImage(
-                                'assets/images/pattern.png',
-                              ),
-                              fit: BoxFit.cover,
-                              opacity: 0.1,
-                              onError: (error, stackTrace) {},
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+
+            child: GradientBackground(
+              child: SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: _AuthForm(state: state),
                   ),
                 ),
-                SafeArea(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: _AuthForm(state: state),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
+          
           );
         },
       ),
@@ -113,21 +91,8 @@ class _AuthForm extends StatelessWidget {
         children: [
           const _LogoWidget(),
           const SizedBox(height: 24),
-          Text(
-            'HRM System',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF667eea),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Sign in to continue',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600], fontSize: 16),
-          ),
-          const SizedBox(height: 40),
+
+          // const SizedBox(height: 40),
           _EmailField(
             isLoading: isLoading,
             isEmailValid: state.isEmailValid,
@@ -135,6 +100,13 @@ class _AuthForm extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           _AuthButton(state: state),
+          const SizedBox(height: 8),
+
+          Text(
+            'Sign in to continue',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          ),
         ],
       ),
     );
@@ -147,19 +119,8 @@ class _LogoWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 100,
-      child: Lottie.asset(
-        'assets/lottie/123.json',
-        fit: BoxFit.contain,
-        repeat: true,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(
-            Icons.business_center,
-            size: 80,
-            color: Theme.of(context).primaryColor,
-          );
-        },
-      ),
+      height: 120,
+      child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:hrm/core/constants/constants.dart';
-import 'package:hrm/core/constants/route_constants.dart';
 
 class BottomNavBarWidget extends StatelessWidget {
   final int currentIndex;
@@ -18,27 +17,29 @@ class BottomNavBarWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children:Constants.route.navbarItems.map((item) {
-              return _buildNavItem(
-                icon: item.icon,
-                label: item.label,
-                index: item.index,
-              );
-            }).toList(),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: Constants.route.navbarItems.map((item) {
+            return _buildNavItem(
+              icon: item.icon,
+              label: item.label,
+              index: item.index,
+            );
+          }).toList(),
         ),
       ),
     );
@@ -51,33 +52,45 @@ class BottomNavBarWidget extends StatelessWidget {
   }) {
     final isActive = currentIndex == index;
 
-    return InkWell(
+    return GestureDetector(
       onTap: () => onTap(index),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? const Color(0xFFF5F0FF)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SvgPicture.asset(
               icon,
-              width: 24,
-              height: 24,
-              color: isActive
-                  ? const Color(0xFF667EEA)
-                  : const Color(0xFF9E9E9E),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive
-                    ? const Color(0xFF667EEA)
-                    : const Color(0xFF9E9E9E),
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(
+                isActive
+                    ? const Color(0xFFFF6B35)
+                    : const Color(0xFFBBBBBB),
+                BlendMode.srcIn,
               ),
             ),
+            if (isActive) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D1B69),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ],
         ),
       ),

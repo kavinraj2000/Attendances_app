@@ -1,10 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:hrm/core/enum/week_days.dart';
 import 'package:hrm/screens/attendances/provoider/attendance_log_provoider.dart';
 import 'package:provider/provider.dart';
 import 'package:hrm/core/enum/attendance_status.dart';
 import 'package:hrm/core/model/attances_model.dart';
 import 'package:hrm/core/util/attendance_util.dart';
 
+// ─── Design tokens ─────────────────────────────────────────────────────────
+const _kBg = Color(0xFFFAFAFA);
+const _kCard = Colors.white;
+const _kAccent = Color(0xFFFF6B4A);
+const _kAccentSoft = Color(0xFFFFF0ED);
+const _kText = Color(0xFF111111);
+const _kTextMid = Color(0xFF555566);
+const _kSub = Color(0xFFB0B0BE);
+const _kBorder = Color(0xFFF0F0F5);
+const _kWeekend = Color(0xFFFF6B4A);
+
+Color _statusColor(AttendanceStatus s) => switch (s) {
+  AttendanceStatus.present => const Color(0xFF00C48C),
+  AttendanceStatus.absent => const Color(0xFFFF4D4D),
+  AttendanceStatus.halfDay => const Color(0xFFFFAA00),
+  AttendanceStatus.pending => const Color(0xFF4E9EFF),
+  AttendanceStatus.leave => const Color(0xFFAA7EFF),
+  AttendanceStatus.unknown => _kSub,
+};
+
+// ─── Root screen ─────────────────────────────────────────────────────────────
 class AttendanceLogsScreen extends StatelessWidget {
   const AttendanceLogsScreen({super.key});
 
@@ -15,28 +37,23 @@ class AttendanceLogsScreen extends StatelessWidget {
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: () {
-        if (status == AttendanceLogStatus.loading) {
-          return const Center(
-            child: CircularProgressIndicator(color: _kAccent, strokeWidth: 2.5),
-          );
-        }
-
-        if (status == AttendanceLogStatus.error) {
-          return _ErrorView(
-            message:
-                context.read<AttendanceLogProvider>().errorMessage ??
-                'Something went wrong',
-            onRetry: () {
-              final p = context.read<AttendanceLogProvider>();
-              p.loadAttendanceLogs(month: p.currentMonth, year: p.currentYear);
-            },
-          );
-        }
-
-        return const SafeArea(
+      backgroundColor: _kBg,
+      body: switch (status) {
+        AttendanceLogStatus.loading => const Center(
+          child: CircularProgressIndicator(color: _kAccent, strokeWidth: 1.5),
+        ),
+        AttendanceLogStatus.error => _ErrorView(
+          message:
+              context.read<AttendanceLogProvider>().errorMessage ??
+              'Something went wrong',
+          onRetry: () {
+            final p = context.read<AttendanceLogProvider>();
+            p.loadAttendanceLogs(month: p.currentMonth, year: p.currentYear);
+          },
+        ),
+        _ => const SafeArea(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _TopBarWidget(),
               _CalendarCardWidget(),
@@ -44,15 +61,15 @@ class AttendanceLogsScreen extends StatelessWidget {
               Expanded(child: _DayDetailPanelWidget()),
             ],
           ),
-        );
-      }(),
+        ),
+      },
     );
   }
 }
 
+// ─── Provider-connected widgets ───────────────────────────────────────────────
 class _TopBarWidget extends StatelessWidget {
   const _TopBarWidget();
-
   @override
   Widget build(BuildContext context) {
     final month = context.select<AttendanceLogProvider, int>(
@@ -61,11 +78,9 @@ class _TopBarWidget extends StatelessWidget {
     final year = context.select<AttendanceLogProvider, int>(
       (p) => p.currentYear,
     );
-
     final isBusy = context.select<AttendanceLogProvider, bool>(
       (p) => p.isChangingMonth,
     );
-
     return _TopBar(
       month: month,
       year: year,
@@ -74,13 +89,13 @@ class _TopBarWidget extends StatelessWidget {
           ? null
           : () {
               final p = context.read<AttendanceLogProvider>();
-              p.changeMonth(DateTime(p.currentYear, p.currentMonth - 1, 1));
+              p.changeMonth(DateTime(p.currentYear, p.currentMonth - 1));
             },
       onNext: isBusy
           ? null
           : () {
               final p = context.read<AttendanceLogProvider>();
-              p.changeMonth(DateTime(p.currentYear, p.currentMonth + 1, 1));
+              p.changeMonth(DateTime(p.currentYear, p.currentMonth + 1));
             },
     );
   }
@@ -88,7 +103,6 @@ class _TopBarWidget extends StatelessWidget {
 
 class _CalendarCardWidget extends StatelessWidget {
   const _CalendarCardWidget();
-
   @override
   Widget build(BuildContext context) {
     final month = context.select<AttendanceLogProvider, int>(
@@ -101,11 +115,10 @@ class _CalendarCardWidget extends StatelessWidget {
         .select<AttendanceLogProvider, List<AttendanceModel>>(
           (p) => p.scheduleData,
         );
-    final selectedDay = context.select<AttendanceLogProvider, DateTime>(
+    final selected = context.select<AttendanceLogProvider, DateTime>(
       (p) => p.selectedDate ?? DateTime.now(),
     );
-
-    final isChangingMonth = context.select<AttendanceLogProvider, bool>(
+    final changing = context.select<AttendanceLogProvider, bool>(
       (p) => p.isChangingMonth,
     );
 
@@ -115,32 +128,26 @@ class _CalendarCardWidget extends StatelessWidget {
           month: month,
           year: year,
           records: records,
-          selectedDay: selectedDay,
+          selectedDay: selected,
           onDaySelected: (d) =>
               context.read<AttendanceLogProvider>().selectDate(d),
         ),
-
-        AnimatedOpacity(
-          opacity: isChangingMonth ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          child: IgnorePointer(
-            ignoring: !isChangingMonth,
+        if (changing)
+          Positioned.fill(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.75),
-                borderRadius: BorderRadius.circular(24),
+                color: Colors.white.withOpacity(0.82),
+                borderRadius: BorderRadius.circular(20),
               ),
-              height: 300,
               child: const Center(
                 child: CircularProgressIndicator(
                   color: _kAccent,
-                  strokeWidth: 2,
+                  strokeWidth: 1.5,
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -148,94 +155,31 @@ class _CalendarCardWidget extends StatelessWidget {
 
 class _DayDetailPanelWidget extends StatelessWidget {
   const _DayDetailPanelWidget();
-
   @override
   Widget build(BuildContext context) {
-    final selectedDay = context.select<AttendanceLogProvider, DateTime>(
+    final selected = context.select<AttendanceLogProvider, DateTime>(
       (p) => p.selectedDate ?? DateTime.now(),
     );
-    final selectedRecord = context
-        .select<AttendanceLogProvider, AttendanceModel?>(
-          (p) => p.recordForDate(p.selectedDate ?? DateTime.now()),
-        );
+    final record = context.select<AttendanceLogProvider, AttendanceModel?>(
+      (p) => p.recordForDate(p.selectedDate ?? DateTime.now()),
+    );
     final summary = context
         .select<AttendanceLogProvider, Map<AttendanceStatus, int>>(
           (p) => p.summary,
         );
-
     return _DayDetailPanel(
-      selectedDay: selectedDay,
-      selectedRecord: selectedRecord,
+      selectedDay: selected,
+      selectedRecord: record,
       summary: summary,
     );
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorView({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF44336).withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
-                size: 38,
-                color: Color(0xFFF44336),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: _kSub,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+// ─── Top bar ──────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   final int month, year;
   final bool isBusy;
-  final VoidCallback? onPrev;
-  final VoidCallback? onNext;
+  final VoidCallback? onPrev, onNext;
 
   const _TopBar({
     required this.month,
@@ -247,52 +191,50 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final monthName = AttendanceUtils.getMonthName(month);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: _kCard,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.calendar_month_outlined,
-                  size: 16,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Attendance',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                   color: _kText,
+                  letterSpacing: -0.5,
+                  height: 1.1,
                 ),
-                const SizedBox(width: 6),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
-                  child: Text(
-                    '$monthName  $year',
-                    key: ValueKey('$month-$year'),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: _kText,
-                    ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                transitionBuilder: (c, a) =>
+                    FadeTransition(opacity: a, child: c),
+                child: Text(
+                  '${AttendanceUtils.getMonthName(month)} $year',
+                  key: ValueKey('$month-$year'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: _kSub,
+                    letterSpacing: 0.1,
                   ),
                 ),
-                const SizedBox(width: 4),
-              ],
-            ),
+              ),
+            ],
           ),
           const Spacer(),
           AnimatedOpacity(
-            opacity: isBusy ? 0.4 : 1.0,
-            duration: const Duration(milliseconds: 200),
+            opacity: isBusy ? 0.3 : 1.0,
+            duration: const Duration(milliseconds: 180),
             child: Row(
               children: [
                 _NavBtn(icon: Icons.chevron_left_rounded, onTap: onPrev),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _NavBtn(icon: Icons.chevron_right_rounded, onTap: onNext),
               ],
             ),
@@ -306,7 +248,6 @@ class _TopBar extends StatelessWidget {
 class _NavBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
-
   const _NavBtn({required this.icon, required this.onTap});
 
   @override
@@ -314,20 +255,21 @@ class _NavBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: _kCard,
           shape: BoxShape.circle,
+          border: Border.all(color: _kBorder, width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: _kText),
+        child: Icon(icon, size: 16, color: _kTextMid),
       ),
     );
   }
@@ -347,34 +289,44 @@ class _CalendarCard extends StatelessWidget {
     required this.onDaySelected,
   });
 
-  static const _headers = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  // ✅ Derived from WeekDay enum instead of hardcoded strings
+  static final _hdrs = WeekDay.values.map((d) => d.shortName).toList();
 
   @override
   Widget build(BuildContext context) {
-    final firstWeekday = DateTime(year, month, 1).weekday;
-    final startOffset = firstWeekday - 1;
+    final firstWeekday = DateTime(year, month, 1).weekday - 1;
     final daysInMonth = DateTime(year, month + 1, 0).day;
     final now = DateTime.now();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
       decoration: BoxDecoration(
         color: _kCard,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
-            children: _headers.asMap().entries.map((e) {
-              final isWknd = e.key == 5 || e.key == 6;
+            children: _hdrs.asMap().entries.map((e) {
+              // ✅ Using WeekDay.values index to check weekend
+              final isWknd = WeekDay.values[e.key].isWeekend;
               return Expanded(
                 child: Center(
                   child: Text(
                     e.value,
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
                       color: isWknd ? _kWeekend.withOpacity(0.6) : _kSub,
                     ),
                   ),
@@ -383,101 +335,139 @@ class _CalendarCard extends StatelessWidget {
             }).toList(),
           ),
           const SizedBox(height: 8),
+          Container(height: 0.5, color: _kBorder),
+          const SizedBox(height: 6),
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
+            duration: const Duration(milliseconds: 280),
+            transitionBuilder: (c, a) => FadeTransition(opacity: a, child: c),
             child: KeyedSubtree(
               key: ValueKey('$month-$year'),
-              child: _buildGrid(startOffset, daysInMonth, now),
+              child: _CalendarGrid(
+                firstWeekday: firstWeekday,
+                daysInMonth: daysInMonth,
+                month: month,
+                year: year,
+                now: now,
+                selectedDay: selectedDay,
+                records: records,
+                onDaySelected: onDaySelected,
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0EA),
-              borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: 8),
+          Center(
+            child: Container(
+              width: 32,
+              height: 3,
+              decoration: BoxDecoration(
+                color: _kBorder,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildGrid(int startOffset, int daysInMonth, DateTime now) {
-    final totalCells = startOffset + daysInMonth;
-    final rows = (totalCells / 7).ceil();
+class _CalendarGrid extends StatelessWidget {
+  final int firstWeekday, daysInMonth, month, year;
+  final DateTime now, selectedDay;
+  final List<AttendanceModel> records;
+  final ValueChanged<DateTime> onDaySelected;
 
+  const _CalendarGrid({
+    required this.firstWeekday,
+    required this.daysInMonth,
+    required this.month,
+    required this.year,
+    required this.now,
+    required this.selectedDay,
+    required this.records,
+    required this.onDaySelected,
+  });
+
+  AttendanceModel? _record(DateTime d) {
+    for (final r in records) {
+      try {
+        final rd = DateTime.parse(r.attendanceDate.toString());
+        if (rd.year == d.year && rd.month == d.month && rd.day == d.day)
+          return r;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = ((firstWeekday + daysInMonth) / 7).ceil();
     return Column(
-      children: List.generate(rows, (r) {
-        return Row(
+      children: List.generate(
+        rows,
+        (r) => Row(
           children: List.generate(7, (c) {
-            final cellIdx = r * 7 + c;
-            final dayNum = cellIdx - startOffset + 1;
-
-            if (cellIdx < startOffset || dayNum > daysInMonth) {
-              return const Expanded(child: SizedBox(height: 52));
+            final idx = r * 7 + c;
+            final day = idx - firstWeekday + 1;
+            if (idx < firstWeekday || day > daysInMonth) {
+              return const Expanded(child: SizedBox(height: 40));
             }
-
-            final date = DateTime(year, month, dayNum);
+            final date = DateTime(year, month, day);
             final isToday =
                 date.year == now.year &&
                 date.month == now.month &&
                 date.day == now.day;
-            final isSelected =
+            final isSel =
                 date.year == selectedDay.year &&
                 date.month == selectedDay.month &&
                 date.day == selectedDay.day;
             final isFuture = date.isAfter(now);
-            final isWeekend =
-                date.weekday == DateTime.saturday ||
-                date.weekday == DateTime.sunday;
-            final record = _findRecord(date);
-            final dotColor = record != null
-                ? _statusColor(record.attendanceStatus!)
+            // ✅ Using WeekDay enum instead of date.weekday >= 6
+            final isWknd = WeekDay.fromDateTime(date).isWeekend;
+            final rec = _record(date);
+            final dotColor = rec != null
+                ? _statusColor(rec.attendanceStatus!)
                 : null;
 
             return Expanded(
               child: GestureDetector(
                 onTap: isFuture ? null : () => onDaySelected(date),
                 child: SizedBox(
-                  height: 52,
+                  height: 40,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        width: 36,
-                        height: 36,
+                        width: 28,
+                        height: 28,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isSelected
+                          color: isSel
                               ? _kAccent
                               : isToday
-                              ? _kAccent.withOpacity(0.13)
+                              ? _kAccentSoft
                               : Colors.transparent,
-                          border: isToday && !isSelected
+                          border: isToday && !isSel
                               ? Border.all(
-                                  color: _kAccent.withOpacity(0.45),
-                                  width: 1.5,
+                                  color: _kAccent.withOpacity(0.35),
+                                  width: 1,
                                 )
                               : null,
                         ),
                         child: Center(
                           child: Text(
-                            '$dayNum',
+                            '$day',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isSelected || isToday
+                              fontSize: 12,
+                              fontWeight: isSel || isToday
                                   ? FontWeight.w700
                                   : FontWeight.w500,
-                              color: isSelected
+                              color: isSel
                                   ? Colors.white
                                   : isFuture
-                                  ? const Color(0xFFCCCCDD)
-                                  : isWeekend
+                                  ? _kBorder
+                                  : isWknd
                                   ? _kWeekend
                                   : _kText,
                             ),
@@ -485,38 +475,27 @@ class _CalendarCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      if (dotColor != null)
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: isSelected ? Colors.white60 : dotColor,
-                            shape: BoxShape.circle,
-                          ),
-                        )
-                      else
-                        const SizedBox(height: 4),
+                      dotColor != null
+                          ? Container(
+                              width: 3.5,
+                              height: 3.5,
+                              decoration: BoxDecoration(
+                                color: isSel
+                                    ? Colors.white.withOpacity(0.7)
+                                    : dotColor,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : const SizedBox(height: 3.5),
                     ],
                   ),
                 ),
               ),
             );
           }),
-        );
-      }),
+        ),
+      ),
     );
-  }
-
-  AttendanceModel? _findRecord(DateTime date) {
-    for (final r in records) {
-      try {
-        final d = DateTime.parse(r.attendanceDate.toString());
-        if (d.year == date.year && d.month == date.month && d.day == date.day) {
-          return r;
-        }
-      } catch (_) {}
-    }
-    return null;
   }
 }
 
@@ -531,28 +510,10 @@ class _DayDetailPanel extends StatelessWidget {
     required this.summary,
   });
 
-  static const _weekdays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  static const _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+  static const _mn = [
+    'January', 'February', 'March', 'April',
+    'May', 'June', 'July', 'August',
+    'September', 'October', 'November', 'December',
   ];
 
   @override
@@ -563,186 +524,338 @@ class _DayDetailPanel extends StatelessWidget {
         selectedDay.month == now.month &&
         selectedDay.day == now.day;
 
+    // ✅ Using WeekDay enum for display name
+    final weekDayName = WeekDay.fromDateTime(selectedDay).displayName;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(22, 10, 22, 10),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+          child: Row(
+            children: [
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${selectedDay.day}',
-                    style: const TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w800,
-                      color: _kText,
-                      height: 1,
-                    ),
-                  ),
-                  Text(
-                    _weekdays[selectedDay.weekday - 1],
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _kSub,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              Container(
+                width: 3,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: _kAccent,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 8),
+              Text(
+                '${selectedDay.day}',
+                style: const TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w800,
+                  color: _kText,
+                  height: 1,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(width: 10),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isToday ? 'Today' : _months[selectedDay.month - 1],
+                      isToday ? 'Today' : _mn[selectedDay.month - 1],
                       style: const TextStyle(
-                        fontSize: 17,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: _kText,
+                        height: 1.1,
                       ),
                     ),
-                    if (selectedRecord != null)
-                      Text(
-                        selectedRecord!.attendanceStatus.toString(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _statusColor(
-                            selectedRecord!.attendanceStatus!,
-                          ),
-                          fontWeight: FontWeight.w600,
-                        ),
+                    // ✅ Fixed: using WeekDay enum displayName
+                    Text(
+                      weekDayName,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: _kAccent,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
                   ],
                 ),
               ),
-              const Spacer(),
+              if (selectedRecord != null) ...[
+                const Spacer(),
+                _StatusBadge(status: selectedRecord!.attendanceStatus!),
+              ],
             ],
           ),
         ),
+
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          height: 0.5,
+          color: _kBorder,
+        ),
+        const SizedBox(height: 6),
         Expanded(
           child: selectedRecord == null
               ? _EmptyDay(isToday: isToday)
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                  children: [
-                    _AttendanceRecordTile(record: selectedRecord!),
-                    const SizedBox(height: 14),
-                  ],
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                  children: [_AttendanceRecordTile(record: selectedRecord!)],
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final AttendanceStatus status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            status.toString(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final Map<AttendanceStatus, int> summary;
+  const _SummaryRow({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = summary.entries.where((e) => e.value > 0).take(5).toList();
+    return SizedBox(
+      height: 30,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (_, i) {
+          final e = items[i];
+          final c = _statusColor(e.key);
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: c.withOpacity(0.07),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '${e.value}  ${e.key.toString()}',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    color: c,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
 class _AttendanceRecordTile extends StatelessWidget {
   final AttendanceModel record;
-
   const _AttendanceRecordTile({required this.record});
+
+  String _fmt(String? raw) {
+    if (raw == null || raw.isEmpty || raw == 'null') return '--:--';
+    try {
+      final dt = DateTime.parse(raw);
+      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m ${dt.hour < 12 ? 'AM' : 'PM'}';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  String _dur(String? i, String? o) {
+    if (i == null || o == null || i == 'null' || o == 'null') return '--';
+    try {
+      final mins = DateTime.parse(o).difference(DateTime.parse(i)).inMinutes;
+      if (mins <= 0) return '--';
+      return '${mins ~/ 60}h ${mins % 60}m';
+    } catch (_) {
+      return '--';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(record.attendanceStatus!);
-    final checkIn = _fmtTime(record.checkinTime?.toString());
-    final checkOut = _fmtTime(record.checkoutTime?.toString());
+    final checkIn = _fmt(record.checkinTime?.toString());
+    final checkOut = _fmt(record.checkoutTime?.toString());
+    final dur = _dur(
+      record.checkinTime?.toString(),
+      record.checkoutTime?.toString(),
+    );
 
     return Container(
       decoration: BoxDecoration(
         color: _kCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.07),
+              color: color.withOpacity(0.05),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
+                top: Radius.circular(16),
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  record.attendanceStatus.toString(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                    letterSpacing: 0.5,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        record.attendanceStatus.toString(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
-                const Icon(Icons.more_horiz, color: _kSub, size: 20),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: dur,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: _kText,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: '  worked',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: _kSub,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+          Container(height: 0.5, color: _kBorder),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               children: [
-                _TimeChip(
+                _TimeBlock(
                   label: 'Check In',
                   time: checkIn,
                   icon: Icons.login_rounded,
-                  color: const Color(0xFF4CAF50),
+                  color: const Color(0xFF00C48C),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Container(
-                    width: 24,
-                    height: 1,
-                    color: const Color(0xFFE0E0EA),
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      height: 1,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00C48C).withOpacity(0.4),
+                            const Color(0xFFFF4D4D).withOpacity(0.4),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                _TimeChip(
+                _TimeBlock(
                   label: 'Check Out',
                   time: checkOut,
                   icon: Icons.logout_rounded,
-                  color: const Color(0xFFF44336),
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _duration(
-                        record.checkinTime?.toString(),
-                        record.checkoutTime?.toString(),
-                      ),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: _kText,
-                      ),
-                    ),
-                    const Text(
-                      'hrs worked',
-                      style: TextStyle(fontSize: 9, color: _kSub),
-                    ),
-                  ],
+                  color: const Color(0xFFFF4D4D),
+                  right: true,
                 ),
               ],
             ),
@@ -751,75 +864,69 @@ class _AttendanceRecordTile extends StatelessWidget {
       ),
     );
   }
-
-  String _fmtTime(String? raw) {
-    if (raw == null || raw.isEmpty || raw == 'null') return '--:--';
-    try {
-      final dt = DateTime.parse(raw);
-      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-      final m = dt.minute.toString().padLeft(2, '0');
-      final p = dt.hour < 12 ? 'AM' : 'PM';
-      return '$h:$m $p';
-    } catch (_) {
-      return raw;
-    }
-  }
-
-  String _duration(String? inRaw, String? outRaw) {
-    if (inRaw == null || outRaw == null || inRaw == 'null' || outRaw == 'null')
-      return '--';
-    try {
-      final inTime = DateTime.parse(inRaw);
-      final outTime = DateTime.parse(outRaw);
-      final mins = outTime.difference(inTime).inMinutes;
-      if (mins <= 0) return '--';
-      final h = mins ~/ 60;
-      final m = mins % 60;
-      return '$h.${(m / 6).round()}';
-    } catch (_) {
-      return '--';
-    }
-  }
 }
 
-class _TimeChip extends StatelessWidget {
+class _TimeBlock extends StatelessWidget {
   final String label, time;
   final IconData icon;
   final Color color;
+  final bool right;
 
-  const _TimeChip({
+  const _TimeBlock({
     required this.label,
     required this.time,
     required this.icon,
     required this.color,
+    this.right = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 11, color: color),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                color: _kSub,
-                fontWeight: FontWeight.w500,
+    final labelRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: right
+          ? [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 9.5,
+                  color: _kSub,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
+              const SizedBox(width: 4),
+              Icon(icon, size: 10, color: color),
+            ]
+          : [
+              Icon(icon, size: 10, color: color),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 9.5,
+                  color: _kSub,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+    );
+    return Column(
+      crossAxisAlignment: right
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        labelRow,
+        const SizedBox(height: 4),
         Text(
           time,
           style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
             color: _kText,
+            letterSpacing: -0.5,
+            height: 1,
           ),
         ),
       ],
@@ -827,63 +934,127 @@ class _TimeChip extends StatelessWidget {
   }
 }
 
+// ─── Empty day ────────────────────────────────────────────────────────────────
 class _EmptyDay extends StatelessWidget {
   final bool isToday;
-
   const _EmptyDay({required this.isToday});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(
+            color: _kAccentSoft,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isToday ? Icons.login_rounded : Icons.event_busy_rounded,
+            size: 22,
+            color: Color(0xFFFF6B4A),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          isToday ? 'No check-in yet today' : 'No record for this day',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: _kSub,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isToday
+              ? 'Check in when you arrive'
+              : 'This day has no attendance data',
+          style: const TextStyle(
+            fontSize: 10,
+            color: _kSub,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// ─── Error view ───────────────────────────────────────────────────────────────
+class _ErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(22),
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: _kAccent.withOpacity(0.08),
+              color: const Color(0xFFFF4D4D).withOpacity(0.07),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              isToday ? Icons.login_rounded : Icons.event_busy_rounded,
-              size: 38,
-              color: _kAccent.withOpacity(0.6),
+            child: const Icon(
+              Icons.wifi_off_rounded,
+              size: 24,
+              color: Color(0xFFFF4D4D),
             ),
           ),
           const SizedBox(height: 14),
           Text(
-            isToday ? 'No check-in yet today' : 'No record for this day',
+            message,
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: _kSub,
+              fontSize: 12,
+              color: _kTextMid,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 18),
+          GestureDetector(
+            onTap: onRetry,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: _kAccent,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kAccent.withOpacity(0.28),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.refresh_rounded, size: 14, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text(
+                    'Try again',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-const _kCard = Colors.white;
-const _kAccent = Color(0xFFFF6B4A);
-const _kText = Color(0xFF1A1A2E);
-const _kSub = Color(0xFF9E9EAF);
-const _kWeekend = Color(0xFFFF6B4A);
-
-Color _statusColor(AttendanceStatus status) {
-  switch (status) {
-    case AttendanceStatus.present:
-      return const Color(0xFF4CAF50);
-    case AttendanceStatus.absent:
-      return const Color(0xFFF44336);
-    case AttendanceStatus.halfDay:
-      return const Color(0xFFFF9800);
-    case AttendanceStatus.pending:
-      return const Color(0xFF2196F3);
-    case AttendanceStatus.leave:
-      return const Color(0xFF9C27B0);
-    case AttendanceStatus.unknown:
-      return _kSub;
-  }
+    ),
+  );
 }

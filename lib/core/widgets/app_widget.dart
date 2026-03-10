@@ -48,15 +48,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
         ),
       ),
       child: SafeArea(
-        bottom: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'HRM',
-              style: Constants.textstyke.headerWhite.copyWith(fontSize: 30),
-            ),
-
+            Image.asset('assets/images/logo.png',fit: BoxFit.contain,color: Colors.white,),
+        
             Row(
               children: [
                 // _buildNotificationButton(),

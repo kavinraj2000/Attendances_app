@@ -5,19 +5,26 @@ class AttendanceModel extends Equatable {
   final int? id;
   final String employeeId;
   final DateTime attendanceDate;
+
   final DateTime? checkinTime;
   final double? checkinLatitude;
   final double? checkinLongitude;
   final String? checkinImage;
+
   final DateTime? checkoutTime;
   final double? checkoutLatitude;
   final double? checkoutLongitude;
   final String? checkoutImage;
+
   final AttendanceStatus? attendanceStatus;
   final String? totalWorkHours;
   final String? remarks;
+
   final DateTime? created;
   final DateTime? modified;
+
+  /// Used for offline sync
+  final bool isSynced;
 
   const AttendanceModel({
     this.id,
@@ -31,13 +38,15 @@ class AttendanceModel extends Equatable {
     this.checkoutLongitude,
     this.checkinImage,
     this.checkoutImage,
-     this.attendanceStatus,
+    this.attendanceStatus,
     this.totalWorkHours,
     this.remarks,
     this.created,
     this.modified,
+    this.isSynced = false,
   });
 
+  /// Check if check-in session is still active
   bool get isActiveCheckIn {
     if (checkinTime == null) return false;
     if (checkoutTime != null) return false;
@@ -47,8 +56,10 @@ class AttendanceModel extends Equatable {
     return diffHours <= 24;
   }
 
+  /// Check if attendance is complete
   bool get isComplete => checkinTime != null && checkoutTime != null;
 
+  /// Working duration
   Duration get workingDuration {
     if (checkinTime == null) return Duration.zero;
 
@@ -59,11 +70,13 @@ class AttendanceModel extends Equatable {
         : Duration.zero;
   }
 
+  /// Format duration
   String get formattedDuration {
     final d = workingDuration;
     return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
   }
 
+  /// CopyWith for immutable updates
   AttendanceModel copyWith({
     int? id,
     String? employeeId,
@@ -81,6 +94,7 @@ class AttendanceModel extends Equatable {
     String? remarks,
     DateTime? created,
     DateTime? modified,
+    bool? isSynced,
   }) {
     return AttendanceModel(
       id: id ?? this.id,
@@ -99,9 +113,11 @@ class AttendanceModel extends Equatable {
       remarks: remarks ?? this.remarks,
       created: created ?? this.created,
       modified: modified ?? this.modified,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
+  /// Convert JSON → Model
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
       id: _parseInt(json['id']),
@@ -120,27 +136,30 @@ class AttendanceModel extends Equatable {
       remarks: json['remarks']?.toString(),
       created: _parseDate(json['created']),
       modified: _parseDate(json['modified']),
+      isSynced: json['is_synced'] ?? false,
     );
   }
 
+  /// Convert Model → JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'employee_id': employeeId,
       'attendance_date': attendanceDate.toIso8601String(),
-      'checkin_time': checkinTime?.toUtc().toIso8601String(),
+      'checkin_time': checkinTime?.toIso8601String(),
       'checkin_latitude': checkinLatitude,
       'checkin_longitude': checkinLongitude,
       'checkin_image': checkinImage,
-      'checkout_time': checkoutTime?.toUtc().toIso8601String(),
+      'checkout_time': checkoutTime?.toIso8601String(),
       'checkout_latitude': checkoutLatitude,
       'checkout_longitude': checkoutLongitude,
       'checkout_image': checkoutImage,
-      'attendance_status': attendanceStatus,
+      'attendance_status': attendanceStatus?.name,
       'total_work_hours': totalWorkHours,
       'remarks': remarks,
-      'created': created?.toUtc().toIso8601String(),
-      'modified': modified?.toUtc().toIso8601String(),
+      'created': created?.toIso8601String(),
+      'modified': modified?.toIso8601String(),
+      'is_synced': isSynced,
     };
   }
 
@@ -165,11 +184,12 @@ class AttendanceModel extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    employeeId,
-    attendanceDate,
-    checkinTime,
-    checkoutTime,
-    attendanceStatus,
-  ];
+        id,
+        employeeId,
+        attendanceDate,
+        checkinTime,
+        checkoutTime,
+        attendanceStatus,
+        isSynced,
+      ];
 }

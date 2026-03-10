@@ -4,7 +4,7 @@ class COLORCONSTANTS {
   COLORCONSTANTS();
 
   final Color primary = Color(0xFF42A5F5);
-  final Color secondary = Color(0xFF42A5F5);
+  final Color secondary = Color.fromARGB(255, 137, 199, 249);
   final Color success = Color(0xFF06D6A0);
   final Color warning = Color(0xFFFFD166);
   final Color danger = Color(0xFFEF476F);

@@ -13,22 +13,24 @@ class AttendanceView extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<LocalDBRepository>(
-          create: (_) => LocalDBRepository(),
+        Provider<LocalDBRepository>(create: (_) => LocalDBRepository.instance),
+
+        Provider<PreferencesRepository>(create: (_) => PreferencesRepository()),
+
+        Provider<AttendancesRepo>(
+          create: (context) => AttendancesRepo(
+            context.read<LocalDBRepository>(),
+            context.read<PreferencesRepository>(),
+          ),
         ),
-        Provider<PreferencesRepository>(
-          create: (_) => PreferencesRepository(),
-        ),
+
         ChangeNotifierProvider<AttendanceLogProvider>(
-          create: (context) => AttendanceLogProvider(
-            repo: AttendancesRepo(
-              context.read<LocalDBRepository>(),
-              context.read<PreferencesRepository>(),
-            ),
-          )..loadAttendanceLogs(
-              month: DateTime.now().month,
-              year: DateTime.now().year,
-            ),
+          create: (context) =>
+              AttendanceLogProvider(repo: context.read<AttendancesRepo>())
+                ..loadAttendanceLogs(
+                  month: DateTime.now().month,
+                  year: DateTime.now().year,
+                ),
         ),
       ],
       child: const AttendanceLogsScreen(),

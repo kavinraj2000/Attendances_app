@@ -6,7 +6,7 @@ class APPSIZE {
   final double appBarHeight = kToolbarHeight;
   final double sidebarWidth = 70.0;
   final double maxCardWidth = 400.0;
-  final double xs = 4.0;
+  final double xs = 3.0;
   final double s = 8.0;
   final double m = 16.0;
   final double l = 24.0;

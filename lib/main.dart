@@ -7,14 +7,15 @@ import 'package:hrm/core/extension/setup_locator.dart';
 import 'package:hrm/core/repo/localdb_repo.dart';
 import 'package:hrm/core/repo/prefernces_repo.dart';
 
-void main() {
+void main()async {
   WidgetsFlutterBinding.ensureInitialized();
   setupLocator();
+  await LocalDBRepository.instance.init();
   runApp(
     MultiRepositoryProvider(
       providers: [
         RepositoryProvider<LocalDBRepository>(
-          create: (_) => LocalDBRepository(),
+          create: (_) => LocalDBRepository.instance,
         ),
         RepositoryProvider<PreferencesRepository>(
           create: (_) => PreferencesRepository(),

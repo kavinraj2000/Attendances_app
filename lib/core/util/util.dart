@@ -18,9 +18,7 @@ class Util extends StatelessWidget {
           mediaQuery.textScaler.scale(1.0).clamp(0.9, 1.2),
         ),
       ),
-      child: SafeArea(
-        child: child ?? const SizedBox.shrink(),
-      ),
+      child: child ?? const SizedBox.shrink(),
     );
   }
 }
